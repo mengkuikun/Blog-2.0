@@ -10,7 +10,7 @@ const config = musicPlayerConfig;
 // 从 bangumi 集合加载音乐播放列表（与音乐页面共享数据源）
 const metingApiBase = config.meting?.api
 	? config.meting.api.split("?")[0]
-	: "https://mu.tsh520.cn/api";
+	: "https://your-meting-api.example.com/api";
 const customBangumi = await getCollection("bangumi");
 const bangumiPlaylist = customBangumi
 	.filter((item) => item.data.category === "music")
@@ -388,7 +388,7 @@ const managerConfigStr = JSON.stringify({
 
     // ── Meting track resolution ─────────────────────────────
     async function resolveMetingTracks(playlist) {
-        var base = (metingApiBase || 'https://mu.tsh520.cn/api') + '?server=';
+        var base = (metingApiBase || 'https://your-meting-api.example.com/api') + '?server=';
         for (var i = 0; i < playlist.length; i++) {
             var track = playlist[i];
             if (track.metingServer && track.metingId && !track.url) {

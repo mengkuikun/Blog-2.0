@@ -25,9 +25,9 @@ const primaryBio = bioLines[0] || siteConfig.description || "";
 const displayName = profileConfig.displayName || profileConfig.name;
 
 export const homeConfig = {
-	avatar: "assets/images/avatar.webp",
-	avatarOnWork: "assets/images/avatar.webp",
-	avatarOffWork: "assets/images/avatar2.webp",
+	avatar: "/avatar.jpg",
+	avatarOnWork: "/avatar.jpg",
+	avatarOffWork: "/avatar.jpg",
 	name: profileConfig.name,
 	displayName,
 	nameBadge: siteConfig.title,
@@ -47,14 +47,14 @@ export const homeConfig = {
 		dialogue: {
 			enabled: true,
 			speakers: {
-				host: "团子",
+				host: "夢酷",
 				visitor: "访客",
 			},
 			menuTitle: "想聊点什么？",
 			typingSpeed: 45,
 			autoDelay: 1600,
 			intro: [
-				{ speaker: "host", text: "欸，来客人啦。欢迎来到团子和蛋糕的博客。" },
+				{ speaker: "host", text: "欸，来客人啦。欢迎来到夢酷的博客。" },
 				{
 					speaker: "host",
 					text: `这里是 ${profileConfig.name} 的个人空间，技术、生活和喜欢的东西都会慢慢收进来。`,
@@ -149,8 +149,8 @@ export const homeConfig = {
 			foreground: `${replicaRoot}/portrait/b-1.webp`,
 			stripLeft: `${replicaRoot}/portrait/b-2.webp`,
 			stripRight: `${replicaRoot}/portrait/b-3.webp`,
-			copyLeft: "团子",
-			copyRight: "蛋糕",
+			copyLeft: "夢酷",
+			copyRight: "MengKu",
 		},
 		panels: [
 			{

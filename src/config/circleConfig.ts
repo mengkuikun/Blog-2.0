@@ -18,7 +18,7 @@ export interface CircleConfig {
 
 export const circleConfig: CircleConfig = {
 	// EdgeOne 托管的 data.json 地址
-	dataUrl: "https://cir.tsh520.cn/data.json",
+	dataUrl: "https://your-circle-api.example.com/data.json", // TODO: 替换为你的 circle-of-friends data.json 地址
 
 	// 每页显示 20 篇文章
 	pageSize: 20,

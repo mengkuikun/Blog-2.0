@@ -118,7 +118,7 @@ async function generatePoster() {
 			width: 100 * scale,
 			color: { dark: "#000000", light: "#ffffff" },
 		});
-		const defaultCoverUrl = "https://re.tsh520.cn/img/zdy/50.webp";
+		const defaultCoverUrl = "https://your-img-bed.example.com/img/zdy/50.webp";
 		const coverUrl = coverImage || defaultCoverUrl;
 		const [qrImg, coverImg, avatarImg] = await Promise.all([
 			loadImage(qrCodeUrl),

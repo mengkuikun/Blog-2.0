@@ -16,7 +16,7 @@ export function initTabTitleInteraction(): void {
 				siteConfig.navbar?.hoverTitle || "w(°Δ°)w 不要走！再看看嘛！";
 			clearTimeout(titleTime);
 		} else {
-			document.title = "欢迎回来，这里是团子和蛋糕的博客";
+			document.title = "欢迎回来，这里是夢酷的博客";
 			titleTime = setTimeout(() => {
 				document.title = originTitle;
 			}, 2000);

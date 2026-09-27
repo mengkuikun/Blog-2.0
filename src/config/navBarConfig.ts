@@ -153,14 +153,7 @@ const getDynamicNavBarConfig = (): NavBarConfig => {
 			// 友链
 			LinkPreset.Friends,
 
-			// QQ群
-			{
-				name: "QQ群",
-				url: "https://qm.qq.com/q/FjkXxV9Hmo",
-				icon: "material-symbols:group",
-				external: true,
-			},
-
+			// TODO: 如需 QQ 群，在此添加
 			// 赞助
 			...(siteConfig.pages.sponsor ? [LinkPreset.Sponsor] : []),
 		],

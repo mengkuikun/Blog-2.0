@@ -88,10 +88,9 @@ const workAvatarUrls = await Promise.all(
 	),
 );
 
-const offAvatarSources = [
-	"assets/images/avatar.webp",
-	"assets/images/avatar2.webp",
-];
+// 下班头像：使用博主头像。如需区分上下班两套形象，可把多张头像放入
+// src/assets/images/avatars/ 会自动被识别为「上班头像池」，再在此填写「下班头像池」。
+const offAvatarSources = ["/avatar.jpg"];
 const offAvatarUrls = (
 	await Promise.all(offAvatarSources.map(async (src) => resolveHeroImage(src)))
 ).filter((src): src is string => Boolean(src));

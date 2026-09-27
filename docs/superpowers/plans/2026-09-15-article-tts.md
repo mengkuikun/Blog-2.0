@@ -4,7 +4,7 @@
 
 **Goal:** 给博客文章页加「朗读」功能：自建 edge-tts 服务流式合成，播放条支持倍速/音色/进度，服务不可用时自动降级浏览器系统语音。
 
-**Architecture:** 服务端是一个部署在腾讯云 2C4G 的 FastAPI + edge-tts 小服务（Nginx 反代 `tts.tsh520.cn`），提供 `POST /tts`（文本换 id）与 `GET /audio/{id}`（流式 mp3 + 磁盘缓存）。博客端新增 Svelte 播放器组件（文章页 `client:load`），客户端提取正文、请求音频、`audio.playbackRate` 控速；失败时用 Web Speech API 兜底。
+**Architecture:** 服务端是一个部署在腾讯云 2C4G 的 FastAPI + edge-tts 小服务（Nginx 反代 `tts.example.com`），提供 `POST /tts`（文本换 id）与 `GET /audio/{id}`（流式 mp3 + 磁盘缓存）。博客端新增 Svelte 播放器组件（文章页 `client:load`），客户端提取正文、请求音频、`audio.playbackRate` 控速；失败时用 Web Speech API 兜底。
 
 **Tech Stack:** Python 3.12 / FastAPI / edge-tts ≥7.2.7 / Docker；Astro 7 + Svelte 5 runes + Tailwind v4。
 
@@ -19,7 +19,7 @@
 - 禁止新建 `!important`、硬编码 `#000/#fff`；颜色用 `var(--*)` 令牌
 - 新 i18n 键必须同时补全 5 个语言文件（en/zh_CN/zh_TW/ja/ru）
 - 服务端 Python 代码是部署产物（edge-tts 仅 Python 有），不属于"用 Python 改文件"的反模式；仓库内其他工具仍只用 Node
-- CORS 默认白名单：`https://blog.tsh520.cn` + `http://localhost:4321`
+- CORS 默认白名单：`https://blog.example.com` + `http://localhost:4321`
 - 当前 changelog 最大版本 `v1.36.0`，本次 feature 用 `v1.37.0`
 
 ---
@@ -106,7 +106,7 @@ ALLOWED_ORIGINS = [
     origin.strip()
     for origin in os.getenv(
         "ALLOWED_ORIGINS",
-        "https://blog.tsh520.cn,http://localhost:4321",
+        "https://blog.example.com,http://localhost:4321",
     ).split(",")
     if origin.strip()
 ]
@@ -284,7 +284,7 @@ services:
     ports:
       - "127.0.0.1:8000:8000"
     environment:
-      - ALLOWED_ORIGINS=https://blog.tsh520.cn
+      - ALLOWED_ORIGINS=https://blog.example.com
       - CACHE_MAX_MB=2048
       - EDGE_TTS_PROXY=
     volumes:
@@ -337,7 +337,7 @@ git commit -m "feat(tts): 新增 edge-tts 朗读服务（FastAPI 流式合成 + 
 
 server {
     listen 443 ssl http2;
-    server_name tts.tsh520.cn;
+    server_name tts.example.com;
 
     # ssl_certificate     /path/to/fullchain.pem;
     # ssl_certificate_key /path/to/privkey.pem;
@@ -416,7 +416,7 @@ echo "== 全部通过，试听 /tmp/tts-test.mp3 =="
 ```text
 博客文章页「朗读」按钮
     ↓ POST /tts（文章文本 + 音色）
-tts.tsh520.cn（Nginx HTTPS）
+tts.example.com（Nginx HTTPS）
     ↓ 反代 127.0.0.1:8000
 blog-tts 容器（FastAPI + edge-tts）
     ↓ WebSocket
@@ -433,7 +433,7 @@ blog-tts 容器（FastAPI + edge-tts）
 ```bash
 mkdir -p /opt/blog-tts && cd /opt/blog-tts
 # 方式一：克隆博客仓库后拷出（推荐，代码随仓库更新）
-git clone --depth 1 https://github.com/tianshihao2003/dumplingandcakeblog.git /tmp/blog
+git clone --depth 1 https://github.com/mengkuikun/dumplingandcakeblog.git /tmp/blog
 cp -r "/tmp/blog/scripts/TTS服务/." /opt/blog-tts/
 # 方式二：本地 scp 上传 scripts/TTS服务/ 整个目录
 ```
@@ -462,27 +462,27 @@ bash 自测.sh                         # 健康检查 + 合成 /tmp/tts-test.mp3
 
 ## 五、Nginx 反代 + HTTPS
 
-前提：`tts.tsh520.cn` 已解析到本服务器。将 `nginx.conf.example` 并入现有 Nginx：
+前提：`tts.example.com` 已解析到本服务器。将 `nginx.conf.example` 并入现有 Nginx：
 
 1. 在 `http {}` 全局块加限流区（若已有可复用）：
    ```nginx
    limit_req_zone $binary_remote_addr zone=tts_limit:10m rate=30r/m;
    ```
-2. 新增 `tts.tsh520.cn` 的 server 块（照抄 `nginx.conf.example`，补证书路径）
-3. 证书二选一：已有泛域名证书直接填路径；没有就跑 `certbot --nginx -d tts.tsh520.cn`（或面板申请）
+2. 新增 `tts.example.com` 的 server 块（照抄 `nginx.conf.example`，补证书路径）
+3. 证书二选一：已有泛域名证书直接填路径；没有就跑 `certbot --nginx -d tts.example.com`（或面板申请）
 4. `nginx -t && nginx -s reload`
 
 验证：
 
 ```bash
-curl https://tts.tsh520.cn/health
+curl https://tts.example.com/health
 # {"status":"ok","edge_tts":"7.x.x"}
 ```
 
 ## 六、博客端配置
 
-1. 本地 `.env` 加：`PUBLIC_TTS_SERVER=https://tts.tsh520.cn`
-2. **EdgeOne Pages 控制台** → 项目 → 环境变量：新增 `PUBLIC_TTS_SERVER=https://tts.tsh520.cn`（线上构建的关键；与其余 13 个变量放一起）
+1. 本地 `.env` 加：`PUBLIC_TTS_SERVER=https://tts.example.com`
+2. **EdgeOne Pages 控制台** → 项目 → 环境变量：新增 `PUBLIC_TTS_SERVER=https://tts.example.com`（线上构建的关键；与其余 13 个变量放一起）
 3. push main 触发 EdgeOne 构建 → 文章页出现「朗读」按钮
 4. （可选）GitHub 仓库 Variable 加 `PUBLIC_TTS_SERVER`：仅当希望 CI 的 `build.yml` 构建产物也带上；不加不影响 CI 通过
 
@@ -490,7 +490,7 @@ curl https://tts.tsh520.cn/health
 
 服务端：
 
-- [ ] `curl https://tts.tsh520.cn/health` 返回 ok
+- [ ] `curl https://tts.example.com/health` 返回 ok
 - [ ] `bash 自测.sh` 全绿，试听正常
 - [ ] 第二次请求同一篇文章明显更快（缓存命中）
 - [ ] 缓存命中后拖动进度条可跳转（Range 生效）
@@ -1492,7 +1492,7 @@ description: 文章页新增「朗读」功能，支持倍速与音色切换，�
    - `src/components/features/` 数量 +1（新增 `ArticleTtsPlayer.svelte`）
    - `scripts/` 说明追加 `TTS服务/`（edge-tts 朗读服务，部署产物）
    - `styles/features/` 追加 `tts-player.css`
-3. §3 新增小节 `### 3.6 文章朗读（TTS，2026-09-15）`：一句话链路（文章页提取正文 → `POST PUBLIC_TTS_SERVER/tts` → `<audio>` 流式播放 → 失败降级 Web Speech；服务端代码与部署见 `docs/deploy-edge-tts.md`；CORS 白名单含 blog.tsh520.cn 与本地 4321）
+3. §3 新增小节 `### 3.6 文章朗读（TTS，2026-09-15）`：一句话链路（文章页提取正文 → `POST PUBLIC_TTS_SERVER/tts` → `<audio>` 流式播放 → 失败降级 Web Speech；服务端代码与部署见 `docs/deploy-edge-tts.md`；CORS 白名单含 blog.example.com 与本地 4321）
 4. §16 技术栈表追加：
    ```markdown
    | edge-tts | Python ≥3.12（服务端 Docker） | 博客朗读服务（scripts/TTS服务/），非 Node 依赖 |
@@ -1534,7 +1534,7 @@ mkdir -p /opt/blog-tts && cd /opt/blog-tts
 
 - [ ] **Step 2: 连通性预检**（教程第三节）→ 403 则走教程第八节
 - [ ] **Step 3: `docker compose up -d --build` + `bash 自测.sh`**
-- [ ] **Step 4: Nginx 反代 + HTTPS（教程第五节）→ `curl https://tts.tsh520.cn/health` 返回 ok**
+- [ ] **Step 4: Nginx 反代 + HTTPS（教程第五节）→ `curl https://tts.example.com/health` 返回 ok**
 - [ ] **Step 5: EdgeOne 控制台加 `PUBLIC_TTS_SERVER` → 触发重新部署**
 - [ ] **Step 6: 手机 + 电脑实测教程第七节验收清单**
 

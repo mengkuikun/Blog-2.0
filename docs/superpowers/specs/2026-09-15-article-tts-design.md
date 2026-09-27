@@ -32,7 +32,7 @@
 
 ### 服务端（部署在腾讯云 2C4G）
 
-技术栈：Python 3.12 + FastAPI + edge-tts + uvicorn，Docker 常驻，Nginx 反代 `tts.tsh520.cn`（HTTPS），端口不直接暴露公网。合成算力在微软云端，服务器只做网络转发，2 核足够。
+技术栈：Python 3.12 + FastAPI + edge-tts + uvicorn，Docker 常驻，Nginx 反代 `tts.example.com`（HTTPS），端口不直接暴露公网。合成算力在微软云端，服务器只做网络转发，2 核足够。
 
 **接口契约**：
 
@@ -49,7 +49,7 @@
 1. **长文分片**：按段落切 ≤3000 字分片，依次调 edge-tts，mp3 字节按序拼接为一条连续流（规避微软 2025-12 新增的 10 分钟音频 / 4096 字节分块限制）
 2. **磁盘缓存**：`{CACHE_DIR}/{id}.mp3`，默认上限 2GB，超出按 mtime LRU 淘汰；重复听秒开且支持拖动
 3. **并发控制**：合成任务信号量上限 3，其余排队，保护微软侧限流
-4. **防护**：CORS 白名单（`https://blog.tsh520.cn` + 本地 dev）；Nginx 按 IP `limit_req`；服务端不持久化文章正文（仅内存 TTL + 音频文件）
+4. **防护**：CORS 白名单（`https://blog.example.com` + 本地 dev）；Nginx 按 IP `limit_req`；服务端不持久化文章正文（仅内存 TTL + 音频文件）
 5. **可配置环境变量**：`ALLOWED_ORIGINS`、`CACHE_DIR`、`CACHE_MAX_MB`、`PORT`、可选代理（应对 403）；仓库内 `scripts/TTS服务/cache/` 加入 `.gitignore`（本地自测不误提交）
 
 **镜像注意**：使用完整版 `python:3.12` 镜像（slim 版缺 SSL 库会导致 WebSocket 握手失败 `No audio received`）。
@@ -86,7 +86,7 @@
 ```text
 用户点「朗读」
   → 前端提取正文（tts-text.ts）
-  → POST https://tts.tsh520.cn/tts {text, voice} → {id}
+  → POST https://tts.example.com/tts {text, voice} → {id}
   → <audio src=".../audio/{id}"> 流式播放（1~2s 出声）
   → 倍速 = playbackRate（本地）；换音色 = 重新 POST
 服务端：

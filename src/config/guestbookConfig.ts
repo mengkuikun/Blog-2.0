@@ -3,7 +3,7 @@ import type { GuestbookConfig } from "../types/config";
 export const guestbookConfig: GuestbookConfig = {
 	// 站长昵称列表：匹配的消息自动显示为站长（右侧），不需要登录
 	// 请填入你在 Waline 中使用的昵称，区分大小写
-	adminNicknames: ["团子和蛋糕"],
+	adminNicknames: ["夢酷"],
 	announcements: [
 		{
 			id: "comment-and-message-rules",

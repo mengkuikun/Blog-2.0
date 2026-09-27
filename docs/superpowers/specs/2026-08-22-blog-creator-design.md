@@ -1,7 +1,7 @@
 # AstrBot BlogCreator 插件设计 — 自然语言新增博客文件（全量13集合）
 
 - **日期**: 2026-08-22
-- **作者**: tianshihao2003 + Muse Spark
+- **作者**: mengkuikun + Muse Spark
 - **状态**: 已批准（方案 B 路由分发）
 - **关联**: `src/content.config.ts` / `.pages.yml` / `plug-in/AstrBot/AstrBot BlogWriter` / `CLAUDE.md §2-§22`
 
@@ -9,7 +9,7 @@
 
 ## 1. 背景与目标
 
-通过 AstrBot（微信 `weixin_oc`）用自然语言为博客仓库 `tianshihao2003/dumplingandcakeblog` 新增文件，覆盖全量集合，要求：
+通过 AstrBot（微信 `weixin_oc`）用自然语言为博客仓库 `mengkuikun/dumplingandcakeblog` 新增文件，覆盖全量集合，要求：
 - **调用官方模型**：仅 `context.get_using_llm()`（A 严格官方，不自配 `ai_api_key/base_url`）
 - **落地 GitHub API**：`PUT /repos/{owner}/{repo}/contents/src/content/...`（A+1，秒回不等待 EdgeOne 构建）
 - **预览确认**：AI 抽取→预览 YAML+正文→用户回 `确认/修改/取消` 才提交
@@ -47,7 +47,7 @@ plug-in/AstrBot/AstrBot BlogCreator/   # 独立 git 仓
 ### 2.2 目录与配置
 
 `_conf_schema.json` 仅 5 项（复用 BlogWriter 键名）：
-- `github_token` / `github_repo`（默认 `tianshihao2003/dumplingandcakeblog`）/ `github_branch`（`main`）
+- `github_token` / `github_repo`（默认 `mengkuikun/dumplingandcakeblog`）/ `github_branch`（`main`）
 - `allow_users`（空=全拒绝）
 - `imgbed_upload_url` / `imgbed_token` / `imgbed_upload_folder`（默认 `blog/moments`，相册 `blog/album/<名>`）
 

@@ -7,7 +7,7 @@
 ```text
 博客文章页「朗读」按钮
     ↓ POST /tts（文章文本 + 音色）
-tts.tsh520.cn（Nginx HTTPS）
+tts.example.com（Nginx HTTPS）
     ↓ 反代 127.0.0.1:8000
 blog-tts 容器（FastAPI + edge-tts）
     ↓ WebSocket
@@ -24,7 +24,7 @@ blog-tts 容器（FastAPI + edge-tts）
 ```bash
 mkdir -p /opt/blog-tts && cd /opt/blog-tts
 # 方式一：克隆博客仓库后拷出（推荐，代码随仓库更新）
-git clone --depth 1 https://github.com/tianshihao2003/dumplingandcakeblog.git /tmp/blog
+git clone --depth 1 https://github.com/mengkuikun/dumplingandcakeblog.git /tmp/blog
 cp -r "/tmp/blog/scripts/TTS服务/." /opt/blog-tts/
 # 方式二：本地 scp 上传 scripts/TTS服务/ 整个目录
 ```
@@ -53,27 +53,27 @@ bash 自测.sh                         # 健康检查 + 合成 /tmp/tts-test.mp3
 
 ## 五、Nginx 反代 + HTTPS
 
-前提：`tts.tsh520.cn` 已解析到本服务器。将 `nginx.conf.example` 并入现有 Nginx：
+前提：`tts.example.com` 已解析到本服务器。将 `nginx.conf.example` 并入现有 Nginx：
 
 1. 在 `http {}` 全局块加限流区（若已有可复用）：
    ```nginx
    limit_req_zone $binary_remote_addr zone=tts_limit:10m rate=30r/m;
    ```
-2. 新增 `tts.tsh520.cn` 的 server 块（照抄 `nginx.conf.example`，补证书路径）
-3. 证书二选一：已有泛域名证书直接填路径；没有就跑 `certbot --nginx -d tts.tsh520.cn`（或面板申请）
+2. 新增 `tts.example.com` 的 server 块（照抄 `nginx.conf.example`，补证书路径）
+3. 证书二选一：已有泛域名证书直接填路径；没有就跑 `certbot --nginx -d tts.example.com`（或面板申请）
 4. `nginx -t && nginx -s reload`
 
 验证：
 
 ```bash
-curl https://tts.tsh520.cn/health
+curl https://tts.example.com/health
 # {"status":"ok","edge_tts":"7.x.x"}
 ```
 
 ## 六、博客端配置
 
-1. 本地 `.env` 加：`PUBLIC_TTS_SERVER=https://tts.tsh520.cn`
-2. **EdgeOne Pages 控制台** → 项目 → 环境变量：新增 `PUBLIC_TTS_SERVER=https://tts.tsh520.cn`（线上构建的关键；与其余 13 个变量放一起）
+1. 本地 `.env` 加：`PUBLIC_TTS_SERVER=https://tts.example.com`
+2. **EdgeOne Pages 控制台** → 项目 → 环境变量：新增 `PUBLIC_TTS_SERVER=https://tts.example.com`（线上构建的关键；与其余 13 个变量放一起）
 3. push main 触发 EdgeOne 构建 → 文章页出现「朗读」按钮
 4. （可选）GitHub 仓库 Variable 加 `PUBLIC_TTS_SERVER`：仅当希望 CI 的 `build.yml` 构建产物也带上；不加不影响 CI 通过
 
@@ -81,7 +81,7 @@ curl https://tts.tsh520.cn/health
 
 服务端：
 
-- [ ] `curl https://tts.tsh520.cn/health` 返回 ok
+- [ ] `curl https://tts.example.com/health` 返回 ok
 - [ ] `bash 自测.sh` 全绿，试听正常
 - [ ] 第二次请求同一篇文章明显更快（缓存命中）
 - [ ] 缓存命中后拖动进度条可跳转（Range 生效）

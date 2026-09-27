@@ -1,7 +1,7 @@
 # PagesCMS 自托管部署指南（Vercel）
 
 > 定制版 PagesCMS：分组后台 + 图床上传字段（imgbed）+ 高德坐标字段（amap-geocode）+ 大目录 500 修复。
-> 部署后访问 `https://cms.tsh520.cn`，连接博客仓库 `dumplingandcakeblog` 编辑内容。
+> 部署后访问 `https://cms.example.com`，连接博客仓库 `dumplingandcakeblog` 编辑内容。
 
 ## 一、准备 GitHub 仓库（代码源）
 
@@ -13,8 +13,8 @@
 1. 打开 https://github.com/settings/developers → **GitHub Apps** → **New GitHub App**
 2. 填写：
    - **GitHub App name**：`pagescms-blog`
-   - **Homepage URL**：`https://cms.tsh520.cn`
-   - **Callback URL**：`https://cms.tsh520.cn/api/auth/callback`（Vercel 部署后）
+   - **Homepage URL**：`https://cms.example.com`
+   - **Callback URL**：`https://cms.example.com/api/auth/callback`（Vercel 部署后）
    - **Webhook**：Active 取消勾选（不配置 webhook 也能用，只是缓存更新稍慢）
    - **Permissions**（Repository permissions）：
      - **Contents**：Read and write
@@ -44,7 +44,7 @@
 
    | 变量名 | 值 |
    |---|---|
-   | `BASE_URL` | `https://cms.tsh520.cn` |
+   | `BASE_URL` | `https://cms.example.com` |
    | `ADMIN_EMAILS` | `你的邮箱`（登录管理员） |
    | `BETTER_AUTH_SECRET` | 长随机字符串 |
    | `CRYPTO_KEY` | 长随机字符串 |
@@ -55,7 +55,7 @@
    | `GITHUB_APP_WEBHOOK_SECRET` | 随机字符串 |
    | `GITHUB_APP_CLIENT_ID` | GitHub App 的 Client ID |
    | `GITHUB_APP_CLIENT_SECRET` | GitHub App 的 Client Secret |
-   | `IMAGEBED_URL` | `https://img.tsh520.cn` |
+   | `IMAGEBED_URL` | `https://img.example.com` |
    | `IMAGEBED_AUTH_CODE` | 图床 authCode |
    | `IMAGEBED_FOLDER` | `手机uu`（或你想上传到的目录）|
    | `AMAP_KEY` | 高德 Web 服务 key |
@@ -65,13 +65,13 @@
 
 ## 五、域名绑定
 
-1. Vercel 项目 → **Settings → Domains** → 添加 `cms.tsh520.cn`
+1. Vercel 项目 → **Settings → Domains** → 添加 `cms.example.com`
 2. 在 DNS（EdgeOne/腾讯云）添加 CNAME 记录：`cms` → `cms.vercel.app`（按 Vercel 提示）
 3. 等待生效
 
 ## 六、安装 GitHub App 到博客仓库
 
-1. 打开 `https://cms.tsh520.cn` → 用 GitHub 登录（管理员邮箱）
+1. 打开 `https://cms.example.com` → 用 GitHub 登录（管理员邮箱）
 2. 按提示安装 GitHub App 到 `dumplingandcakeblog` 仓库（Only select repositories）
 3. 打开仓库 → 应该看到 `.pages.yml` 配置的 5 个分组（📝博客文章 / 💬动态 / 🔗友链与应用 / 🌱生活记录 / 📦其他内容）
 

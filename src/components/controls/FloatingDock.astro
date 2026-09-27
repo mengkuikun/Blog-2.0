@@ -32,7 +32,7 @@ const announcementLink =
 // Fetch music playlist from bangumi (same source as music page)
 const metingApiBase = musicPlayerConfig.meting?.api
 	? musicPlayerConfig.meting.api.split("?")[0]
-	: "https://mu.tsh520.cn/api";
+	: "https://your-meting-api.example.com/api";
 const customBangumi = await getCollection("bangumi");
 const musicEntries = customBangumi
 	.filter((item) => item.data.category === "music")

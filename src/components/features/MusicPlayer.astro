@@ -194,7 +194,7 @@ const widgetId =
 
     // Meting API resolution
     async function resolveMetingTracks(playlist) {
-        var base = (metingApiBase || "https://mu.tsh520.cn/api") + '?server=';
+        var base = (metingApiBase || "https://your-meting-api.example.com/api") + '?server=';
         for (var i = 0; i < playlist.length; i++) {
             var track = playlist[i];
             if (track.metingServer && track.metingId && !track.url) {

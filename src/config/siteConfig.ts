@@ -7,26 +7,25 @@ const SITE_LANG = "zh_CN";
 
 export const siteConfig: SiteConfig = {
 	// 站点标题
-	title: "团子和蛋糕的博客",
+	title: "夢酷 の Blog",
 
 	// 站点副标题
-	subtitle: "",
+	subtitle: "MengKu",
 
 	// 站点 URL
-	site_url: "https://blog.tsh520.cn",
+	site_url: "https://example.com", // TODO: 替换为你的博客域名
 
 	// 站点描述
 	description:
-		"团子和蛋糕的博客，一个分享技术见解与生活感悟的个人空间。涵盖编程开发、实用工具推荐、ACG文化与日常生活的随想，记录成长的每一步。",
+		"夢酷的博客，一个分享网络技术、服务器部署、内网穿透、静态网站搭建、CDN 优化与容器化部署等技术教程与实践经验的个人空间。",
 
 	// 站点关键词
 	keywords: [
-		"团子",
-		"团子和蛋糕",
-		"蛋糕",
-		"团子和蛋糕的博客",
-		"团子的博客",
-		"蛋糕的博客",
+		"夢酷",
+		"MengKu",
+		"博客",
+		"Blog",
+		"技术博客",
 	],
 
 	// 主题色
@@ -54,7 +53,7 @@ export const siteConfig: SiteConfig = {
 	favicon: [
 		{
 			// 图标文件路径
-			src: "/assets/ziyuan/tx.webp",
+			src: "/avatar.jpg",
 			// 可选，指定主题 'light' | 'dark'
 			// theme: "light",
 			// 可选，图标大小
@@ -76,7 +75,7 @@ export const siteConfig: SiteConfig = {
 			alt: "🍀",
 		},
 		// 导航栏标题
-		title: "团子和蛋糕",
+		title: "夢酷",
 		// 悬停时显示的互动颜文字
 		hoverTitle: "w(ﾟДﾟ)w 不要走！再看看嘛！",
 		// 全宽导航栏，导航栏是否占满屏幕宽度，true：占满，false：不占满
@@ -92,13 +91,13 @@ export const siteConfig: SiteConfig = {
 	portal: {
 		announcement: {
 			enable: true,
-			text: "欢迎来到团子和蛋糕的博客！这里有技术分享、生活记录和更多有趣内容。",
+			text: "欢迎来到夢酷的博客！这里有技术分享、生活记录和更多有趣内容。",
 		},
 		dailyQuote: {
 			enable: true,
 			quotes: [
 				{ text: "人生到处知何似，应似飞鸿踏雪泥。", source: "苏轼" },
-				{ text: "海棠花未眠，老陈总在我身边。", source: "团子" },
+				{ text: "路虽远，行则将至；事虽难，做则必成。", source: "荀子" },
 				{
 					text: "世界上只有一种真正的英雄主义，那就是在认识生活的真相后依然热爱生活。",
 					source: "罗曼·罗兰",
@@ -147,8 +146,8 @@ export const siteConfig: SiteConfig = {
 
 	// bangumi配置
 	bangumi: {
-		// Bangumi用户ID
-		userId: "1219895",
+		// Bangumi用户ID（TODO: 替换为你的 Bangumi 数字 UID）
+		userId: "",
 	},
 
 	// 豆瓣配置
