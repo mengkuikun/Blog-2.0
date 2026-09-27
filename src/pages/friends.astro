@@ -53,11 +53,11 @@ const moreFriends = items.filter(
 		(item.data.group ?? "other") !== "friend" && !latestIds.has(item.id),
 );
 
-// 友链墓碑（纪念下线的友链）：目录无数据时不调用 getCollection（避免 Astro 空集合警告），区块自动隐藏
+// 友链墓碑（纪念下线的友链）：目录不存在或无数据时不调用 getCollection（避免 ENOENT 崩溃与 Astro 空集合警告），区块自动隐藏
 const tombstonesDir = path.join(process.cwd(), "src", "content", "tombstones");
-const hasTombstones = fs
-	.readdirSync(tombstonesDir)
-	.some((f) => f.endsWith(".md"));
+const hasTombstones =
+	fs.existsSync(tombstonesDir) &&
+	fs.readdirSync(tombstonesDir).some((f) => f.endsWith(".md"));
 const tombstoneEntries = hasTombstones ? await getCollection("tombstones") : [];
 
 // 站点截图：public/assets/friends-shots/{contentId}.webp，不存在则不传（卡片退化为纯头像卡）

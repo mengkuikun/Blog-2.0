@@ -290,6 +290,15 @@ export default defineConfig({
 	},
 	vite: {
 		plugins: [tailwindcss()],
+		// 忽略 Windows 系统卷（如 F:\System Volume Information），
+		// 避免 Vite 8 文件监听对其 lstat 抛 EINVAL 导致 dev 进程崩溃
+		server: {
+			watch: {
+				ignored: (path) =>
+					typeof path === "string" &&
+					path.includes("System Volume Information"),
+			},
+		},
 		define: {},
 		// 预构建依赖，避免动态导入时出现 504 (Outdated Optimize Dep)
 		optimizeDeps: {

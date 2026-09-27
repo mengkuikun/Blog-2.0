@@ -67,6 +67,21 @@ export async function GET({
 	// 从本地字体文件读取（构建期不产生网络请求）。
 	const { regular: fontRegular, bold: fontBold } = loadLocalOgFonts();
 
+	// 头像/图标读取失败时的兜底：1x1 透明 PNG，保证模板中的 <img> 始终有合法 src
+	const FALLBACK_IMG =
+		"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=";
+
+	/** 读取本地图片并转为 data URL；文件缺失或读取失败时返回 null */
+	const readLocalImageDataUrl = (filePath: string): string | null => {
+		try {
+			const buffer = fs.readFileSync(filePath);
+			return `data:image/png;base64,${buffer.toString("base64")}`;
+		} catch (err) {
+			console.warn(`Failed to read image for OG: ${filePath}`, err);
+			return null;
+		}
+	};
+
 	// Avatar + icon: still read from disk (small assets)
 	let avatarBase64: string;
 
@@ -79,16 +94,14 @@ export async function GET({
 		const avatarPath = profileConfig.avatar?.startsWith("/")
 			? `./public${profileConfig.avatar}`
 			: `./src/${profileConfig.avatar}`;
-		const avatarBuffer = fs.readFileSync(avatarPath);
-		avatarBase64 = `data:image/png;base64,${avatarBuffer.toString("base64")}`;
+		avatarBase64 = readLocalImageDataUrl(avatarPath) ?? FALLBACK_IMG;
 	}
 
 	let iconPath = "./public/favicon/favicon-dark-192.png";
 	if (siteConfig.favicon.length > 0) {
 		iconPath = `./public${siteConfig.favicon[0].src}`;
 	}
-	const iconBuffer = fs.readFileSync(iconPath);
-	const iconBase64 = `data:image/png;base64,${iconBuffer.toString("base64")}`;
+	const iconBase64 = readLocalImageDataUrl(iconPath) ?? FALLBACK_IMG;
 
 	const hue = siteConfig.themeColor.hue;
 	const primaryColor = `hsl(${hue}, 90%, 65%)`;
