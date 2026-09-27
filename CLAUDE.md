@@ -65,22 +65,22 @@ src/
 │   └── widget/          # 侧栏 Widget (27)
 ├── config/              # 站点配置（27 个 .ts，index.ts barrel export）
 ├── constants/           # 常量：页面尺寸、主题模式、图标、链接预设
-├── content/             # Astro Content Collections（15 个集合：posts/spec/moments/bangumi/life/notebooks/album/daohang/ziyuan/friends/apps/tombstones/changelog/bills/schedules）
-│   ├── album/ apps/ bangumi/ changelog/ daohang/
+├── content/             # Astro Content Collections（16 个集合：posts/spec/moments/bangumi/life/notebooks/album/daohang/ziyuan/friends/apps/tombstones/changelog/bills/schedules/equipment）
+│   ├── album/ apps/ bangumi/ changelog/ daohang/ equipment/
 │   ├── friends/ life/ moments/ posts/ spec/ ziyuan/  # spec/about.mdx 为组件化 Q&A；更新日志图谱组件（ChangelogGraph）用于 /changelog/ 页（2026-08-30 起不再嵌入关于页）
 │   └── life/notebooks/  # notebooks 集合物理位置（life 的子目录，2026-09-27 起归档改 card 流，支持 images 多图 12字展开 + 年份下拉联动热力图与列表）
 ├── i18n/                # 国际化（5 种语言，330 个翻译键）
 │   └── languages/       # en.ts, zh_CN.ts, zh_TW.ts, ja.ts, ru.ts
 ├── layouts/             # Layout.astro (591行), MainGridLayout.astro (305行)
 ├── notes/               # Obsidian 笔记（不发布）
-├── pages/               # 路由（38 个文件；admin 后台已删除，勿重建）
+├── pages/               # 路由（42 个文件；admin 后台已删除，勿重建）
 │   ├── api/             # JSON API (2)：calendar.json.ts, home-stats.json.ts
-│   ├── album/ bangumi/ books/ categories/ life/ moments/ posts/ // moments/[slug] 已删除
+│   ├── album/ bangumi/ books/ categories/ equipment/ life/ moments/ posts/ // moments/[slug] 已删除
 │   └── 404, about, archive, apps, changelog, circle, debug-urls, friends,
 │       guestbook, life/notebooks, movies-games/, music, projects, search,
 │       sponsor, rss, robots.txt, og
 ├── plugins/             # 自定义 remark/rehype 插件 (10)
-├── styles/              # CSS 样式（73 个文件，含 about 技术栈/时间线/更新日志图谱）
+├── styles/              # CSS 样式（74 个文件，含 about 技术栈/时间线/更新日志图谱、equipment 卡片）
 │   ├── tokens/          # 设计令牌：colors, breakpoints, animation, z-index
 │   ├── base/            # reset, utilities
 │   ├── components/      # 组件样式
@@ -182,7 +182,7 @@ Layout.astro          ← HTML 骨架：<html>, <head>, <body>, 全局组件, �
 
 ### 3.5 Content Collections
 
-13 个集合定义在 `src/content.config.ts`，使用 Zod schema 校验：
+16 个集合定义在 `src/content.config.ts`，使用 Zod schema 校验：
 
 | 集合 | 用途 |
 |------|------|
@@ -199,6 +199,7 @@ Layout.astro          ← HTML 骨架：<html>, <head>, <body>, 全局组件, �
 | tombstones | 友链墓碑（title/avatar/note，2026-08 新增，纪念下线友链） |
 | apps | 应用 |
 | changelog | 更新日志 |
+| equipment | 我的设备（2026-09-27 新增：文件夹即分组，schema 含 name/spec/description/image/url/urlLabel/weight/enabled） |
 
 > 友链页支撑系统（2026-08）：`.github/workflows/friend-status.yml`（每天 5:17 检测友链延迟 → public/friends-status.json，四档 fast/ok/slow/down）与 `friend-screenshots.yml`（每周日 3:23 全量补漏 + push main 变更 `src/content/friends/**` 时自动触发，Playwright 截图 → public/assets/friends-shots/{contentId}.webp，伪装真实浏览器 + load 后等字体就绪、网络空闲（6s 超时兜底）与 2s 缓冲，失败 3 次尝试）。前端 fetch 状态 JSON 注入徽标，无 JSON/无截图时优雅降级（卡片退化为纯头像卡）。改 friends 集合结构时注意同步这两个脚本（正则读 frontmatter）。**截图文件名必须是全小写**（Astro glob loader 的 entry id 为全小写 slug，脚本已按 `md 文件名.toLowerCase()` 输出；含大写的 webp 在 Windows dev 误判存在导致 404，线上 Linux 则直接退化）。
 

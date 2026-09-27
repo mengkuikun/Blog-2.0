@@ -1,0 +1,209 @@
+---
+import { getCollection } from "astro:content";
+import MainGridLayout from "@layouts/MainGridLayout.astro";
+import { Icon } from "astro-icon/components";
+
+// 从 content/equipment 读取设备数据
+const allEntries = await getCollection("equipment");
+
+/**
+ * 分组元数据：显示名 / 排序 / 图标 / 一句话说明。
+ * key 用文件夹名，比较时统一按「小写 + 空格转连字符」归一化，
+ * 与 Astro 的 entry id 规则对齐（见 src/pages/projects.astro）。
+ */
+const CATEGORY_META: Record<
+	string,
+	{ display: string; order: number; icon: string; subtitle: string }
+> = {
+	生产力: {
+		display: "生产力",
+		order: 1,
+		icon: "material-symbols:computer",
+		subtitle: "提升自己生产效率的硬件设备",
+	},
+	出行: {
+		display: "出行",
+		order: 3,
+		icon: "material-symbols:commute",
+		subtitle: "用来出行的实物及设备",
+	},
+	影音娱乐: {
+		display: "影音娱乐",
+		order: 4,
+		icon: "material-symbols:headphones",
+		subtitle: "娱乐与影音设备",
+	},
+};
+
+/** 归一化：小写 + 空格转连字符，与 Astro 的 entry id 规则对齐 */
+const normalizeCatKey = (name: string) =>
+	name.toLowerCase().replace(/\s+/g, "-");
+
+/** 从 entry id 取分组：id 形如「生产力/xx.md」或「xx.md」 */
+function getFolderCategory(id: string): string {
+	const normalized = id.replace(/\\/g, "/").replace(/\.md$/i, "");
+	const slash = normalized.lastIndexOf("/");
+	return slash < 0 ? "未分类" : normalized.slice(0, slash);
+}
+
+function getCategoryMeta(folder: string) {
+	const key = normalizeCatKey(folder);
+	for (const [k, v] of Object.entries(CATEGORY_META)) {
+		if (normalizeCatKey(k) === key) return v;
+	}
+	return {
+		display: folder,
+		order: 99,
+		icon: "material-symbols:devices",
+		subtitle: "",
+	};
+}
+
+// 过滤未启用的设备
+const items = allEntries
+	.filter((item) => item.data.enabled !== false)
+	.sort((a, b) => (b.data.weight || 0) - (a.data.weight || 0));
+
+// 按分组归类
+const categoryMap = new Map<
+	string,
+	{
+		items: typeof items;
+		display: string;
+		order: number;
+		icon: string;
+		subtitle: string;
+	}
+>();
+
+items.forEach((entry) => {
+	const folder = getFolderCategory(entry.id);
+	const meta = getCategoryMeta(folder);
+	if (!categoryMap.has(folder)) {
+		categoryMap.set(folder, {
+			items: [],
+			display: meta.display,
+			order: meta.order,
+			icon: meta.icon,
+			subtitle: meta.subtitle,
+		});
+	}
+	categoryMap.get(folder)?.items.push(entry);
+});
+
+// 分组排序，组内按名称（中文按拼音）
+const sortedCategories = [...categoryMap.entries()]
+	.sort(([, a], [, b]) => a.order - b.order)
+	.map(([folder, { items: catItems }]) => ({
+		folder,
+		meta: getCategoryMeta(folder),
+		items: [...catItems].sort((a, b) =>
+			a.data.name.localeCompare(b.data.name, "zh-CN"),
+		),
+	}));
+
+const title = "我的设备";
+const description = "我目前在用的装备";
+---
+
+<MainGridLayout title={title} description={description}>
+  <div class="flex w-full rounded-(--radius-large) relative min-h-32">
+    <div class="card-base z-10 px-4 py-6 md:px-9 relative w-full">
+      <!-- 页面标题 -->
+      <div class="mb-6">
+        <div class="flex items-center gap-3 mb-3">
+          <Icon
+            name="material-symbols:devices"
+            class="text-[1.875rem] text-neutral-900 dark:text-neutral-100"
+          />
+          <div class="text-3xl font-bold text-neutral-900 dark:text-neutral-100">
+            {title}
+          </div>
+        </div>
+        <p class="text-base text-neutral-600 dark:text-neutral-400 leading-relaxed">
+          {description}
+        </p>
+      </div>
+
+      {sortedCategories.length > 0 ? (
+        <div class="flex flex-col gap-10">
+          {sortedCategories.map(({ meta, items: catItems }) => (
+            <section>
+              <!-- 分组头 -->
+              <div class="mb-4 flex items-center gap-2">
+                <Icon
+                  name={meta.icon}
+                  class="text-xl text-neutral-700 dark:text-neutral-300"
+                />
+                <h2 class="text-xl font-bold text-neutral-900 dark:text-neutral-100">
+                  {meta.display}
+                </h2>
+                <span class="text-sm text-neutral-500 dark:text-neutral-400">
+                  {catItems.length} 件
+                </span>
+                {
+                  meta.subtitle && (
+                    <p class="text-sm text-neutral-500 dark:text-neutral-400 ml-1 hidden sm:block">
+                      {meta.subtitle}
+                    </p>
+                  )
+                }
+              </div>
+
+              <!-- 设备卡片网格：最多 3 列，留白宽松 -->
+              <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                {catItems.map((entry) => {
+                  const { name, spec, description, image, url, urlLabel } =
+                    entry.data;
+                  const initial = name.trim().slice(0, 1);
+                  return (
+                    <a
+                      class="equipment-card"
+                      href={url || undefined}
+                      target={url ? "_blank" : undefined}
+                      rel={url ? "noopener" : undefined}
+                      aria-label={url ? `${name}（${urlLabel}）` : name}
+                    >
+                      {/* 顶部标签：分组名 */}
+                      <span class="equipment-card__tab">{meta.display}</span>
+
+                      {/* 设备图：4:3 大图，无图时显示首字兜底 */}
+                      <div class="equipment-card__media" data-initial={initial}>
+                        {image && (
+                          <img
+                            alt={name}
+                            class="equipment-card__img"
+                            src={image}
+                            loading="lazy"
+                            decoding="async"
+                            onerror="this.parentElement.classList.add('is-error')"
+                          />
+                        )}
+                      </div>
+
+                      {/* 信息区：左对齐，文案可换行不截断 */}
+                      <div class="equipment-card__body">
+                        <h3 class="equipment-card__name">{name}</h3>
+                        {spec && <p class="equipment-card__spec">{spec}</p>}
+                        {description && (
+                          <p class="equipment-card__desc">{description}</p>
+                        )}
+                        {url && (
+                          <span class="equipment-card__link">{urlLabel}</span>
+                        )}
+                      </div>
+                    </a>
+                  );
+                })}
+              </div>
+            </section>
+          ))}
+        </div>
+      ) : (
+        <p class="text-center text-neutral-500 dark:text-neutral-400 py-10">
+          还没有添加设备，可在 src/content/equipment/ 下按分组添加。
+        </p>
+      )}
+    </div>
+  </div>
+</MainGridLayout>

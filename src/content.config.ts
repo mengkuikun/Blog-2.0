@@ -260,6 +260,24 @@ const appsCollection = defineCollection({
 	}),
 });
 
+const equipmentCollection = defineCollection({
+	loader: glob({ pattern: "**/*.md", base: "./src/content/equipment" }),
+	// 设备展示：分组由「文件所在文件夹」决定（文件夹即分组），空分组不渲染
+	schema: z.object({
+		name: z.string(),
+		// 规格描述行，如 "M1 Max 64G / 1TB"
+		spec: z.string().optional().default(""),
+		description: z.string().optional().default(""),
+		// 图片：本地 public 路径（/equipment/xx.jpg）或图床 URL；留空则显示名称首字兜底
+		image: z.string().optional().default(""),
+		// 详情/购买链接；留空则卡片不可点击
+		url: z.string().optional().default(""),
+		urlLabel: z.string().optional().default("详情"),
+		weight: z.number().optional().default(0),
+		enabled: z.boolean().optional().default(true),
+	}),
+});
+
 const tombstonesCollection = defineCollection({
 	loader: glob({ pattern: "**/*.md", base: "./src/content/tombstones" }),
 	schema: z.object({
@@ -363,6 +381,7 @@ export const collections = {
 	ziyuan: ziyuanCollection,
 	friends: friendsCollection,
 	apps: appsCollection,
+	equipment: equipmentCollection,
 	changelog: changelogCollection,
 	tombstones: tombstonesCollection,
 	bills: billsCollection,

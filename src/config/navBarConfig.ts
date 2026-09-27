@@ -153,6 +153,13 @@ const getDynamicNavBarConfig = (): NavBarConfig => {
 			// 友链
 			LinkPreset.Friends,
 
+			// 我的设备
+			{
+				name: "我的设备",
+				url: "/equipment/",
+				icon: "material-symbols:devices",
+			},
+
 			// TODO: 如需 QQ 群，在此添加
 			// 赞助
 			...(siteConfig.pages.sponsor ? [LinkPreset.Sponsor] : []),

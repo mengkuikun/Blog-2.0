@@ -290,13 +290,12 @@ export default defineConfig({
 	},
 	vite: {
 		plugins: [tailwindcss()],
-		// 忽略 Windows 系统卷（如 F:\System Volume Information），
-		// 避免 Vite 8 文件监听对其 lstat 抛 EINVAL 导致 dev 进程崩溃
+		// 忽略 Windows 系统卷（如 F:\System Volume Information）。
+		// 注意：函数过滤在 chokidar readdirp 的 lstat 之后才生效，挡不住 EINVAL，
+		// 必须用正则，让 chokidar 在遍历目录时就跳过它
 		server: {
 			watch: {
-				ignored: (path) =>
-					typeof path === "string" &&
-					path.includes("System Volume Information"),
+				ignored: [/System Volume Information/],
 			},
 		},
 		define: {},
