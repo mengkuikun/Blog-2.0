@@ -26,7 +26,7 @@ import {
 import { defaultFavicons } from "@/constants/icon";
 import type { Favicon } from "@/types/config";
 import { getDefaultBackground, isHomePage } from "@/utils/layout-utils";
-import { url } from "@/utils/url-utils";
+import { removeFileExtension, url } from "@/utils/url-utils";
 
 import "@/styles/main.css";
 import "@rehype-callouts-theme";
@@ -80,7 +80,7 @@ if (title) {
 
 let ogImageUrl: string | undefined;
 if (siteConfig.generateOgImages && postSlug) {
-	ogImageUrl = new URL(`/og/${postSlug}.png`, Astro.site).toString();
+	ogImageUrl = new URL(`/og/${removeFileExtension(postSlug)}.png`, Astro.site).toString();
 }
 
 const favicons: Favicon[] =

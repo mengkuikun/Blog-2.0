@@ -1,5 +1,5 @@
 import { getSortedPosts } from "@utils/content-utils";
-import { url } from "@utils/url-utils";
+import { removeFileExtension, url } from "@utils/url-utils";
 import type { APIContext } from "astro";
 import { siteConfig } from "@/config";
 
@@ -18,7 +18,7 @@ export async function GET(context: APIContext): Promise<Response> {
 		"## Posts",
 	];
 	for (const post of posts) {
-		const link = abs(`/posts/${post.id}/`);
+		const link = abs(`/posts/${removeFileExtension(post.id)}/`);
 		const desc = post.data.description || "";
 		lines.push(
 			desc

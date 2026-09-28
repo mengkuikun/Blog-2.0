@@ -2,7 +2,7 @@ import { loadRenderers } from "astro:container";
 import { render } from "astro:content";
 import { getContainerRenderer as getMDXRenderer } from "@astrojs/mdx/container-renderer";
 import { getSortedPosts } from "@utils/content-utils";
-import { url } from "@utils/url-utils";
+import { removeFileExtension, url } from "@utils/url-utils";
 import type { APIContext } from "astro";
 import { experimental_AstroContainer as AstroContainer } from "astro/container";
 import sanitizeHtml from "sanitize-html";
@@ -45,7 +45,7 @@ export async function GET(context: APIContext): Promise<Response> {
 	const entries: string[] = [];
 	let latestUpdated: Date | null = null;
 	for (const post of blog) {
-		const link = url(`/posts/${post.id}/`);
+		const link = url(`/posts/${removeFileExtension(post.id)}/`);
 		const published = post.data.published;
 		if (latestUpdated === null || published > latestUpdated) {
 			latestUpdated = published;

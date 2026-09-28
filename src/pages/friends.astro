@@ -3,6 +3,7 @@ import { getCollection, getEntry, render } from "astro:content";
 import fs from "node:fs";
 import path from "node:path";
 import { domainToUnicode } from "node:url";
+import { removeFileExtension } from "@utils/url-utils";
 import Comment from "@components/comment/index.astro";
 import Markdown from "@components/common/Markdown.astro";
 import FriendCard from "@components/features/FriendCard.astro";
@@ -63,7 +64,7 @@ const tombstoneEntries = hasTombstones ? await getCollection("tombstones") : [];
 // 站点截图：public/assets/friends-shots/{contentId}.webp，不存在则不传（卡片退化为纯头像卡）
 const shotsDir = path.join(process.cwd(), "public", "assets", "friends-shots");
 const shotExists = (id: string) =>
-	fs.existsSync(path.join(shotsDir, `${id}.webp`));
+	fs.existsSync(path.join(shotsDir, `${removeFileExtension(id)}.webp`));
 
 // 域名（还原为 Unicode 显示，避免 IDN 域名显示成 xn-- punycode；取不到时回退空串）
 const hostOf = (siteurl: string) => {
@@ -133,7 +134,7 @@ const description = i18n(I18nKey.friendsDescription);
                     href={item.data.siteurl}
                     imgurl={item.data.imgurl}
                     desc={item.data.desc}
-                    screenshot={shotExists(item.id) ? `/assets/friends-shots/${item.id}.webp` : undefined}
+                    screenshot={shotExists(item.id) ? `/assets/friends-shots/${removeFileExtension(item.id)}.webp` : undefined}
                     host={hostOf(item.data.siteurl)}
                   />
                 ))
@@ -164,7 +165,7 @@ const description = i18n(I18nKey.friendsDescription);
                     href={item.data.siteurl}
                     imgurl={item.data.imgurl}
                     desc={item.data.desc}
-                    screenshot={shotExists(item.id) ? `/assets/friends-shots/${item.id}.webp` : undefined}
+                    screenshot={shotExists(item.id) ? `/assets/friends-shots/${removeFileExtension(item.id)}.webp` : undefined}
                     host={hostOf(item.data.siteurl)}
                   />
                 ))
@@ -195,7 +196,7 @@ const description = i18n(I18nKey.friendsDescription);
                     href={item.data.siteurl}
                     imgurl={item.data.imgurl}
                     desc={item.data.desc}
-                    screenshot={shotExists(item.id) ? `/assets/friends-shots/${item.id}.webp` : undefined}
+                    screenshot={shotExists(item.id) ? `/assets/friends-shots/${removeFileExtension(item.id)}.webp` : undefined}
                     host={hostOf(item.data.siteurl)}
                   />
                 ))

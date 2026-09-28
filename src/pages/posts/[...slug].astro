@@ -196,7 +196,7 @@ const jsonLd = {
           commentConfig.type === 'waline' && commentConfig.waline?.visitorCount && (
             <span class="post-hero__views">
               <span class="mr-1">{i18n(I18nKey.pageViews)}</span>
-              <span class="waline-pageview-count" data-path={`/posts/${entry.id}`}>{i18n(I18nKey.pageViewsLoading)}</span>
+              <span class="waline-pageview-count" data-path={`/posts/${removeFileExtension(entry.id)}`}>{i18n(I18nKey.pageViewsLoading)}</span>
             </span>
           )
         }
@@ -205,7 +205,7 @@ const jsonLd = {
           commentConfig.type === 'artalk' && commentConfig.artalk?.visitorCount && (
             <span class="post-hero__views">
               <span class="mr-1">{i18n(I18nKey.pageViews)}</span>
-              <span class="artalk-pv-count" data-path={`/posts/${entry.id}`}>{i18n(I18nKey.pageViewsLoading)}</span>
+              <span class="artalk-pv-count" data-path={`/posts/${removeFileExtension(entry.id)}`}>{i18n(I18nKey.pageViewsLoading)}</span>
             </span>
           )
         }
