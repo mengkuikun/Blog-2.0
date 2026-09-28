@@ -170,7 +170,7 @@ if (document.readyState === 'loading') {
         <h2 class="text-lg font-bold text-neutral-900 dark:text-neutral-100 mb-3">足迹地图</h2>
         {footprintLocations.length > 0 ? (
           <div class="map-wrapper" id="map-wrapper">
-            <div id='footprintMap' class='footprint-map' data-amap-key={import.meta.env.PUBLIC_AMAP_KEY_PLACES} style='height: 500px;'></div>
+            <div id='footprintMap' class='footprint-map' data-amap-key={import.meta.env.PUBLIC_AMAP_KEY_PLACES} data-amap-security-code={import.meta.env.PUBLIC_AMAP_SECURITY_JS_CODE} style='height: 500px;'></div>
             <!-- 地图锁定遮罩 -->
             <div class="map-lock-overlay" id="map-lock-overlay">
               <div class="map-lock-content">

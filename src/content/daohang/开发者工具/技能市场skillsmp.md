@@ -1,7 +1,7 @@
 ---
 name: 技能市场 | SkillsMP
 url: https://skillsmp.com/zh/
-icon: https://img.tsh520.cn/file/blog/daohang/skillsmp.com-icon.png
+icon: https://favicon.im/skillsmp.com
 description: AI Agent技能市场，浏览GitHub公开SKILL.md实例找灵感。
 ---
 

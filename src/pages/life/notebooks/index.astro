@@ -7,7 +7,7 @@ import NotebookCommentModal from "@/components/comment/NotebookCommentModal.svel
 import { profileConfig } from "@/config";
 import MainGridLayout from "@/layouts/MainGridLayout.astro";
 
-const noteAvatar = profileConfig.avatar || "/assets/ziyuan/tx.webp";
+const noteAvatar = profileConfig.avatar || "/avatar.jpg";
 
 // 预加载笔记本文件夹内的封面图片
 const notebookCoverFiles = import.meta.glob<ImageMetadata>(
@@ -337,10 +337,10 @@ const recentNotes: RecentNote[] = allNotes
 							<article class="nb-note-card">
 								<div class="nb-note-head">
 									<div class="nb-note-avatar">
-										<img src={noteAvatar} alt="团子的笔记" class="nb-note-avatar-img" loading="lazy" />
+										<img src={noteAvatar} alt="夢酷的笔记" class="nb-note-avatar-img" loading="lazy" />
 									</div>
 									<div class="nb-note-author">
-										<span class="nb-note-name">团子的笔记</span>
+										<span class="nb-note-name">夢酷的笔记</span>
 										<span class="nb-note-time">
 											<Icon name="material-symbols:schedule-outline" class="text-[0.75rem]" />
 											{n.date instanceof Date ? (n.date.getMonth() + 1) + "月" + n.date.getDate() + "日" : ""}

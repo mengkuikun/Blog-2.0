@@ -9,7 +9,7 @@ import { i18n } from "@/i18n/translation";
 
 const metingApiBase = musicPlayerConfig.meting?.api
 	? musicPlayerConfig.meting.api.split("?")[0]
-	: "https://mu.tsh520.cn/api";
+	: "https://your-meting-api.example.com/api";
 
 if (!siteConfig.pages.musicPage) {
 	return Astro.redirect("/404/");

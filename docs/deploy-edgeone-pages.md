@@ -1,6 +1,6 @@
 # EdgeOne Pages 部署指南（GitHub 集成）
 
-> 博客生产部署为 **EdgeOne Pages**：push 到 `main` 后 EdgeOne 拉取仓库自动构建并托管，线上地址 `https://blog.tsh520.cn/`。
+> 博客生产部署为 **EdgeOne Pages**：push 到 `main` 后 EdgeOne 拉取仓库自动构建并托管，线上地址 `https://blog.example.com/`。
 > 本文档是控制台操作手册，2026-09 从 GitHub Pages 迁移而来（迁移记录见第四节）。
 
 ## 一、部署架构
@@ -10,21 +10,21 @@ Push main（日常写作 / PagesCMS 后台 / 友链自动脚本）
     ↓ GitHub Webhook
 EdgeOne Pages 项目（GitHub 集成，自动构建）
     ↓ pnpm build → dist/（生成图标 → astro build → pagefind）
-EdgeOne Pages 托管（blog.tsh520.cn 直接绑定 Pages 项目）
-    ↓ DNS（blog.tsh520.cn CNAME → Pages 分配的默认域名）
+EdgeOne Pages 托管（blog.example.com 直接绑定 Pages 项目）
+    ↓ DNS（blog.example.com CNAME → Pages 分配的默认域名）
 用户浏览器
 ```
 
 - 无独立 CDN 加速层：EdgeOne Pages 托管本身即边缘分发
 - 无 GitHub Actions 部署工作流（`pages.yml` 已删除）；`build.yml` 保留作 CI 质量门（`astro check` + `pnpm build`，与 EdgeOne 构建一致）
-- 后台 PagesCMS 独立部署在 Vercel（`cms.tsh520.cn`），只写 git 仓库，与博客托管无关（见 `deploy-pagescms-vercel.md`）
+- 后台 PagesCMS 独立部署在 Vercel（`cms.example.com`），只写 git 仓库，与博客托管无关（见 `deploy-pagescms-vercel.md`）
 
 ## 二、EdgeOne 控制台配置（首次一次性）
 
 ### 1. 创建 Pages 项目
 
 1. 打开 EdgeOne 控制台 → **Pages** → **新建项目**（或复用现有项目）
-2. 选择 Git 提供商 **GitHub** → 关联仓库 `tianshihao2003/dumplingandcakeblog`
+2. 选择 Git 提供商 **GitHub** → 关联仓库 `mengkuikun/dumplingandcakeblog`
 3. 分支：`main`
 
 ### 2. 构建设置
@@ -71,10 +71,10 @@ EdgeOne Pages 托管（blog.tsh520.cn 直接绑定 Pages 项目）
 
 ## 三、域名绑定与切换（零宕机）
 
-1. 预览验证通过后，在 Pages 项目绑定 `blog.tsh520.cn`，按控制台指引完成域名校验
-2. 修改 DNS：`blog.tsh520.cn` 的 CNAME 记录指向 Pages 项目分配的默认域名
-3. **剥离旧配置**：EdgeOne 站点加速中 `blog.tsh520.cn` 的加速配置必须移除（同一域名不能同时挂在站点加速和 Pages 下，避免解析/回源冲突）；旧 GitHub Pages 站点随工作流删除自动停用
-4. 验证：`nslookup blog.tsh520.cn` 确认 CNAME 指向 Pages 默认域名，浏览器实测关键路径，观察 1-2 天
+1. 预览验证通过后，在 Pages 项目绑定 `blog.example.com`，按控制台指引完成域名校验
+2. 修改 DNS：`blog.example.com` 的 CNAME 记录指向 Pages 项目分配的默认域名
+3. **剥离旧配置**：EdgeOne 站点加速中 `blog.example.com` 的加速配置必须移除（同一域名不能同时挂在站点加速和 Pages 下，避免解析/回源冲突）；旧 GitHub Pages 站点随工作流删除自动停用
+4. 验证：`nslookup blog.example.com` 确认 CNAME 指向 Pages 默认域名，浏览器实测关键路径，观察 1-2 天
 
 ## 四、迁移记录（2026-09-04：GitHub Pages → EdgeOne Pages）
 
@@ -99,4 +99,4 @@ EdgeOne Pages 托管（blog.tsh520.cn 直接绑定 Pages 项目）
 |---|---|
 | 构建失败 | 先看 Node 版本是否 ≥ 22、pnpm 是否 9.14.x、构建命令是否为 `pnpm build`；与 `build.yml` 的 CI 行为对照 |
 | 功能静默缺失（评论/统计空白） | 检查 13 个环境变量是否逐项填齐（见第二节表） |
-| 需要换域名 | 改 `src/config/siteConfig.ts:16` 的 `site_url`（sitemap/robots/RSS/canonical 自动跟随）+ 控制台重新绑定域名；注意 `src/config/musicConfig.ts` 等硬编码的 `*.tsh520.cn` 子域不受影响 |
+| 需要换域名 | 改 `src/config/siteConfig.ts:16` 的 `site_url`（sitemap/robots/RSS/canonical 自动跟随）+ 控制台重新绑定域名；注意 `src/config/musicConfig.ts` 等硬编码的 `*.example.com` 子域不受影响 |

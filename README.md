@@ -2,7 +2,7 @@
 
 <div align="center">
 
-# 团子和蛋糕的博客
+# 夢酷 の Blog
 > 一款清新美观的 Astro 静态博客主题模板
 >
 > ![Node.js >= 22](https://img.shields.io/badge/node.js-%3E%3D22-brightgreen) 
@@ -20,7 +20,7 @@
 **[简体中文](README.md)** | **[English](README.en.md)**
 
 🚀 快速指南：
-[**🖥️在线站点**](https://blog.tsh520.cn/) 
+[**🖥️在线站点**](https://example.com/) 
 
 ⚡ 静态站点生成: 基于Astro的超快加载速度和SEO优化
 
@@ -235,6 +235,6 @@ comment: true    # 是否允许评论
 **版权声明：**
 - Copyright (c) 2024 [saicaca](https://github.com/saicaca) - [fuwari](https://github.com/saicaca/fuwari)
 - Copyright (c) 2025 [CuteLeaf](https://github.com/CuteLeaf) - [Firefly](https://github.com/CuteLeaf/Firefly)
-- Copyright (c) 2026 [团子和蛋糕](https://blog.tsh520.cn) - 个人博客
+- Copyright (c) 2026 [夢酷](https://example.com) - 个人博客
 
 根据 MIT 开源协议，你可以自由使用、修改、分发代码，但需保留上述版权声明。

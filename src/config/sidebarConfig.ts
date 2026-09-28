@@ -163,7 +163,7 @@ export const sidebarLayoutConfig: SidebarLayoutConfig = {
 		{
 			// 组件类型：恋爱计时小组件
 			type: "relationship",
-			enable: true,
+			enable: false,
 			position: "top",
 			showOnPostPage: false,
 		},
@@ -241,7 +241,7 @@ export const sidebarLayoutConfig: SidebarLayoutConfig = {
 			// 组件类型：恋爱计时小组件
 			type: "relationship",
 			// 是否启用该组件
-			enable: true,
+			enable: false,
 			// 是否在文章详情页显示
 			showOnPostPage: true,
 		},

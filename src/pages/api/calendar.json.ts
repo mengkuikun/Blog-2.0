@@ -1,11 +1,12 @@
 import { getSortedPosts } from "@/utils/content-utils";
+import { removeFileExtension } from "@/utils/url-utils";
 
 export async function GET() {
 	const posts = await getSortedPosts();
 
 	const allPostsData = posts
 		.map((post) => ({
-			id: post.id,
+			id: removeFileExtension(post.id),
 			title: post.data.title,
 			published: post.data.published.getTime(),
 		}))

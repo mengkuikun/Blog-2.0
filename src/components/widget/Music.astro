@@ -16,7 +16,7 @@ const widgetId = `music-widget-${Math.random().toString(36).substring(2, 9)}`;
 
 const metingApiBase = musicPlayerConfig.meting?.api
 	? musicPlayerConfig.meting.api.split("?")[0]
-	: "https://mu.tsh520.cn/api";
+	: "https://your-meting-api.example.com/api";
 
 // Fetch bangumi collection (same source as music page)
 const customBangumi = await getCollection("bangumi");

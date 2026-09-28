@@ -19,10 +19,11 @@ const { currentSlug, currentTags, currentCategory, maxCount = 5 } = Astro.props;
 // 获取所有文章
 const allPosts = await getSortedPosts();
 
-// 过滤掉当前文章
+// 过滤掉当前文章（currentSlug 来自 entry.id 含扩展名，需先去掉扩展名再比较）
+const normalizedCurrentSlug = removeFileExtension(currentSlug);
 const otherPosts = allPosts.filter((post) => {
 	const slug = removeFileExtension(post.id);
-	return slug !== currentSlug;
+	return slug !== normalizedCurrentSlug;
 });
 
 // 计算相关度：优先同分类，其次标签重叠度

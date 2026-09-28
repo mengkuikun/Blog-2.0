@@ -290,6 +290,14 @@ export default defineConfig({
 	},
 	vite: {
 		plugins: [tailwindcss()],
+		// 忽略 Windows 系统卷（如 F:\System Volume Information）。
+		// 注意：函数过滤在 chokidar readdirp 的 lstat 之后才生效，挡不住 EINVAL，
+		// 必须用正则，让 chokidar 在遍历目录时就跳过它
+		server: {
+			watch: {
+				ignored: [/System Volume Information/],
+			},
+		},
 		define: {},
 		// 预构建依赖，避免动态导入时出现 504 (Outdated Optimize Dep)
 		optimizeDeps: {

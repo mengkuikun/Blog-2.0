@@ -11,7 +11,7 @@ const { includeProfilePage = false } = Astro.props;
 
 const siteUrl = new URL("/", Astro.site).toString();
 const aboutUrl = new URL("/about/", Astro.site).toString();
-const fallbackOg = "/assets/ziyuan/tx.webp";
+const fallbackOg = "/avatar.jpg";
 const imageUrl = new URL(fallbackOg, Astro.site).toString();
 const sameAs = (homeConfig.links || [])
 	.filter((link) => /^https?:\/\//i.test(link.url))
