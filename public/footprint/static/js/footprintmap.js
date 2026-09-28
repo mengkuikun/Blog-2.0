@@ -196,9 +196,10 @@
 
     // --- AMap Engine ---
     class AMapEngine {
-        constructor(container, apiKey) {
+        constructor(container, apiKey, securityCode) {
             this.container = container;
             this.apiKey = apiKey;
+            this.securityCode = securityCode;
             this.map = null;
             this.markers = [];
             this.clusterMarkers = [];
@@ -213,10 +214,11 @@
 
         async load() {
             if (window.AMap) return;
+            window._AMapSecurityConfig = { securityJsCode: this.securityCode || '' };
             return new Promise((resolve, reject) => {
                 const s = document.createElement('script');
                 s.src = `https://webapi.amap.com/maps?v=2.0&key=${this.apiKey}`;
-                s.onload = () => { window._AMapSecurityConfig = { securityJsCode: '' }; resolve(); };
+                s.onload = resolve;
                 s.onerror = reject;
                 document.head.appendChild(s);
             });
@@ -353,12 +355,12 @@
 
     // --- 主加载流程 ---
     async function initMap(container) {
-        const { json: dataUrl, amapKey: apiKey } = container.dataset;
+        const { json: dataUrl, amapKey: apiKey, amapSecurityCode: securityCode } = container.dataset;
         if (!apiKey) return container.innerHTML = `<div class="footprint-map__error">配置错误：缺少 API Key</div>`;
         try {
             const raw = await (await fetch(dataUrl)).json();
             const list = (raw.locations || raw).map(Utils.sanitizeLocation).filter(Boolean);
-            const engine = new AMapEngine(container, apiKey);
+            const engine = new AMapEngine(container, apiKey, securityCode);
             await engine.load();
             renderUI(container, list, engine.init(list));
         } catch (e) {

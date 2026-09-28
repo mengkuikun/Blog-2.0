@@ -12,7 +12,7 @@ export const sponsorConfig: SponsorConfig = {
 		"您的赞助将用于服务器维护、内容创作和功能开发，帮助我持续提供优质内容。",
 
 	// 是否显示赞助者列表
-	showSponsorsList: true,
+	showSponsorsList: false,
 
 	// 是否在文章详情页底部显示赞助按钮
 	showButtonInPost: true,
@@ -22,8 +22,8 @@ export const sponsorConfig: SponsorConfig = {
 		{
 			name: "支付宝",
 			icon: "fa7-brands:alipay",
-			// 收款码图片路径（需要放在 public 目录下）
-			qrCode: "/assets/images/sponsors/alipay.png",
+			// 占位图路径（二次元占位图，待替换为真实收款码）
+			qrCode: "/assets/images/covers/1.webp",
 			link: "",
 			description: "使用 支付宝 扫码赞助",
 			enabled: true,
@@ -31,7 +31,7 @@ export const sponsorConfig: SponsorConfig = {
 		{
 			name: "微信",
 			icon: "fa7-brands:weixin",
-			qrCode: "/assets/images/sponsors/wechat.png",
+			qrCode: "/assets/images/covers/2.webp",
 			link: "",
 			description: "使用 微信 扫码赞助",
 			enabled: true,
@@ -55,20 +55,5 @@ export const sponsorConfig: SponsorConfig = {
 	],
 
 	// 赞助者列表（可选）
-	sponsors: [
-		// 示例：已实名赞助者
-		{
-			name: "夏叶",
-			amount: "¥50",
-			date: "2025-10-01",
-			message: "感谢分享！",
-		},
-
-		// 示例：匿名赞助者
-		{
-			name: "匿名用户",
-			amount: "¥20",
-			date: "2025-10-01",
-		},
-	],
+	sponsors: [],
 };

@@ -13,7 +13,7 @@ export const siteConfig: SiteConfig = {
 	subtitle: "MengKu",
 
 	// 站点 URL
-	site_url: "https://example.com", // TODO: 替换为你的博客域名
+	site_url: "https://imki.cn",
 
 	// 站点描述
 	description:
@@ -84,8 +84,8 @@ export const siteConfig: SiteConfig = {
 		followTheme: false,
 	},
 
-	// 站点开始日期，用于统计运行天数
-	siteStartDate: "2025-9-1",
+	// 站点开始日期，用于统计运行天数（按首次提交到远程的时间）
+	siteStartDate: "2026-09-27",
 
 	// 门户区配置
 	portal: {

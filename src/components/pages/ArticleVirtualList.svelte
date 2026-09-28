@@ -522,6 +522,14 @@ $effect(() => {
 	{/if}
 {/snippet}
 
+{#snippet layoutSwitch()}
+	{#if allowLayoutSwitch}
+		<div class="article-list-regular__switch">
+			<AnimatedTabs activeTab={view} />
+		</div>
+	{/if}
+{/snippet}
+
 {#if posts.length === 0}
 	<div class="article-list-empty">
 		<span class="article-list-empty__title">暂无文章</span>
@@ -545,9 +553,6 @@ $effect(() => {
 		>
 			<div class="article-list-pinned__heading">
 				<h2 id="article-list-pinned-title" class="article-list-section-title">置顶</h2>
-				<div class="article-list-pinned__switch" class:is-hidden={!allowLayoutSwitch}>
-					<AnimatedTabs activeTab={view} />
-				</div>
 			</div>
 			<div
 				class="article-list-pinned__collection"
@@ -651,6 +656,7 @@ $effect(() => {
 			<div class="article-list-regular__toolbar" aria-label="常规文章">
 				<h2 class="article-list-regular__title">文章</h2>
 				<span class="article-list-regular__count">共 <strong>{regularPosts.length}</strong> 篇文章</span>
+				{@render layoutSwitch()}
 			</div>
 			<div
 				class="article-list-masonry"
@@ -728,6 +734,7 @@ $effect(() => {
 			<div class="article-list-regular__toolbar" aria-label="常规文章">
 				<h2 class="article-list-regular__title">文章</h2>
 				<span class="article-list-regular__count">共 <strong>{regularPosts.length}</strong> 篇文章</span>
+				{@render layoutSwitch()}
 			</div>
 			<div class="article-list-vertical article-list-vertical--pinned" aria-label="文章列表">
 				{#each paginatedPosts as post (post.id)}
