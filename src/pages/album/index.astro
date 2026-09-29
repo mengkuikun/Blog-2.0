@@ -20,8 +20,15 @@ async function fetchImgbedPreview(folder: string): Promise<string[]> {
 		const data = (await resp.json()) as {
 			files?: { name: string; metadata?: { FileType?: string } }[];
 		};
+		const isImage = (f: { name?: string; metadata?: { FileType?: string } }) => {
+			const ext = (f.name || "").split(".").pop()?.toLowerCase() ?? "";
+			return (
+				f.metadata?.FileType?.startsWith("image/") ||
+				["jpg", "jpeg", "png", "gif", "webp", "avif", "svg", "bmp"].includes(ext)
+			);
+		};
 		return (data.files || [])
-			.filter((f) => f.metadata?.FileType?.startsWith("image/"))
+			.filter(isImage)
 			.map((f) => `${imgbedUrl}/file/${f.name}`);
 	} catch {
 		return [];

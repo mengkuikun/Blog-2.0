@@ -302,7 +302,10 @@ const imgbedToken = import.meta.env.PUBLIC_IMAGEBED_API_TOKEN || "";
             var resp = await fetch(url, { headers: { "Authorization": "Bearer " + imgbedToken } });
             if (!resp.ok) throw new Error("HTTP " + resp.status);
             var data = await resp.json();
-            var files = (data.files || []).filter(function(f) { return f.metadata && f.metadata.FileType && f.metadata.FileType.startsWith("image/"); });
+            var files = (data.files || []).filter(function(f) {
+              var ext = (f.name || "").split(".").pop().toLowerCase();
+              return (f.metadata && f.metadata.FileType && f.metadata.FileType.startsWith("image/")) || ["jpg", "jpeg", "png", "gif", "webp", "avif", "svg", "bmp"].indexOf(ext) !== -1;
+            });
             allFiles = allFiles.concat(files);
             if (statusEl) statusEl.textContent = "正在加载图片... " + allFiles.length + " 张";
             if (!data.files || data.files.length < 100) break;
