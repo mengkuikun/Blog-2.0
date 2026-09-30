@@ -750,6 +750,17 @@ scope: layout | config | i18n | styles | utils | components | content
 
 > 本仓库 `biome ci` 仅覆盖 `./src`（package.json 固定 `2.5.7`），但 **任何修改后都必须跑**；新增目录（非 `src`）需提前加入 `.gitignore`。
 
+### 大版本/多功能迭代推送规范：合并节点法（Non-Fast-Forward Merge Node）
+
+多功能或阶段性大迭代开发时，本地通常会有多次原子提交（如 `feat(branding)`、`feat(navbar)`、`feat(schedules)`）。**向远程推送时严禁直接裸推线性提交**（避免最后一次零散提交覆盖 GitHub 首页的迭代汇总），也禁止 squash（丢失细粒度历史）。
+
+**标准推送流程（详细见 skill: `.agents/skills/git-merge-node/SKILL.md`）**：
+1. 本地原子提交全部完成且工作区 clean；
+2. 建立临时分支 `git branch -f feat-update HEAD` 标记当前末端；
+3. 将 main 回退至本次迭代起点的基准合并节点 `git reset --hard <BASE_COMMIT>`（如 `67253684`）；
+4. 通过 `git merge feat-update --no-ff -m "<汇总feat信息>"` 生成汇总合并节点；
+5. 删除临时分支 `git branch -d feat-update`，最后 `git push origin main`。
+
 ---
 
 ## 19. PagesCMS 后台（2026-08 接入）

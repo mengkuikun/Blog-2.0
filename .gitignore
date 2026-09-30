@@ -48,6 +48,7 @@ scripts/fill-descriptions/index.ts
 !.agents/skills
 .agents/skills/*
 !.agents/skills/note-organizer
+!.agents/skills/git-merge-node
 # 其它层级的 .agents（如 src/.agents）仍全部忽略：旧规则是裸 .agents 匹配任意层级，改成 .agents/* 后必须显式补回
 src/.agents
 .mimocode
