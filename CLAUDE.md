@@ -56,7 +56,7 @@ src/
 │   ├── common/          # 跨域共享基础组件 (17)
 │   ├── controls/        # 交互控件：搜索、归档（类型 Tab 筛选）、主题、Dock (8)
 │   ├── features/        # 独立功能模块 (26, 含 music-visualizer/、ArticleTtsPlayer.svelte 文章朗读播放器)
-│   ├── layout/          # 布局组件：Navbar, Footer, SideBar, HomeHero... (19)
+│   ├── layout/          # 布局组件：Navbar, Footer, SideBar, HomeHero, NavbarProfileCard (20)
 │   ├── misc/            # License, RelatedPosts, SharePoster (3)
 │   ├── moments/         # 动态卡片与评论弹窗
 │   ├── bills/         # 账单/资金（7：Balance 年度结余横幅卡 + MonthlyFlow 月度流水（按日分组/月份筛选/分页）+ BillCalendar 账单日历（农历+每日收支）+ DailyTrend/ExpenseRank/IncomeCategory/MonthlySummary/YearlyFlow，按图两栏等比缩小）
@@ -69,28 +69,28 @@ src/
 │   ├── album/ apps/ bangumi/ changelog/ daohang/ equipment/
 │   ├── friends/ life/ moments/ posts/ spec/ ziyuan/  # spec/about.mdx 为组件化 Q&A；更新日志图谱组件（ChangelogGraph）用于 /changelog/ 页（2026-08-30 起不再嵌入关于页）
 │   └── life/notebooks/  # notebooks 集合物理位置（life 的子目录，2026-09-27 起归档改 card 流，支持 images 多图 12字展开 + 年份下拉联动热力图与列表）
-├── i18n/                # 国际化（5 种语言，330 个翻译键）
+├── i18n/                # 国际化（5 种语言，340 个翻译键）
 │   └── languages/       # en.ts, zh_CN.ts, zh_TW.ts, ja.ts, ru.ts
 ├── layouts/             # Layout.astro (591行), MainGridLayout.astro (305行)
 ├── notes/               # Obsidian 笔记（不发布）
 ├── pages/               # 路由（42 个文件；admin 后台已删除，勿重建）
-│   ├── api/             # JSON API (2)：calendar.json.ts, home-stats.json.ts
+│   ├── api/             # JSON API (3)：calendar.json.ts, home-stats.json.ts, holidays.json.ts
 │   ├── album/ bangumi/ books/ categories/ equipment/ life/ moments/ posts/ // moments/[slug] 已删除
 │   └── 404, about, archive, apps, changelog, circle, debug-urls, friends,
 │       guestbook, life/notebooks, movies-games/, music, projects, search,
 │       sponsor, rss, robots.txt, og
 ├── plugins/             # 自定义 remark/rehype 插件 (10)
-├── styles/              # CSS 样式（74 个文件，含 about 技术栈/时间线/更新日志图谱、equipment 卡片）
+├── styles/              # CSS 样式（75 个文件，含 navbar-profile-card、about 技术栈/时间线/更新日志图谱、equipment 卡片）
 │   ├── tokens/          # 设计令牌：colors, breakpoints, animation, z-index
 │   ├── base/            # reset, utilities
 │   ├── components/      # 组件样式
 │   ├── features/        # 功能样式（含 tts-player.css 文章朗读播放器）
-│   ├── layout/          # 布局样式
+│   ├── layout/          # 布局样式（含 navbar-profile-card.css）
 │   ├── pages/           # 页面样式
 │   ├── transitions/     # Swup 过渡动画
 │   └── vendor/          # 第三方覆盖
 ├── types/               # TypeScript 类型：config.ts, bangumi.ts, guestbook-chat.ts
-└── utils/               # 工具函数（41 个文件，含 changelog.ts / tag-graph 控制器 / tts-text 正文提取等）
+└── utils/               # 工具函数（43 个文件，含 calendar-milestones.ts / navbar-profile-controller.ts / changelog.ts / tag-graph 控制器 / tts-text 正文提取等）
     ├── 8 个控制器模块   # 见第 10 节
     └── 33 个业务工具    # content-utils, category-tree（文件夹即分类，多级 `a/b` 推导 + CategoryNode 树）, date-utils, image-utils, url-utils, tts-text（朗读正文提取）...
 
@@ -122,7 +122,7 @@ write_places.cjs          # 一次性脚本：生成 life/places 足迹页
 | `moments-cover.jpg` | 说说页封面 |
 
 **`src/assets/images/`**（需 Astro 优化的小图）：
-- `avatars/` 首页头像池；`backgrounds/desktop|mobile/` 背景图池；`avatar.webp`/`avatar2.webp` 上/下班头像；`cover.avif` 封面兜底；`firefly.png` 导航 Logo
+- `avatars/` 首页头像池；`backgrounds/desktop|mobile/` 背景图池；`avatar.webp`/`avatar2.webp` 上/下班头像；`cover.avif` 封面兜底；`logos/` 导航 Logo 资源池
 
 **硬性规则**：
 - 目录英文小写 kebab-case 按功能分组；**禁止拼音/中文目录、顶层散放文件**

@@ -20,13 +20,7 @@ export const siteConfig: SiteConfig = {
 		"夢酷的博客，一个分享网络技术、服务器部署、内网穿透、静态网站搭建、CDN 优化与容器化部署等技术教程与实践经验的个人空间。",
 
 	// 站点关键词
-	keywords: [
-		"夢酷",
-		"MengKu",
-		"博客",
-		"Blog",
-		"技术博客",
-	],
+	keywords: ["夢酷", "MengKu", "博客", "Blog", "Vibe Coding"],
 
 	// 主题色
 	themeColor: {
@@ -71,8 +65,8 @@ export const siteConfig: SiteConfig = {
 		// 4. 网络图片: { type: "url", value: "https://example.com/logo.png", alt: "Logo" }
 		logo: {
 			type: "image",
-			value: "assets/images/firefly.png",
-			alt: "🍀",
+			value: "assets/images/logos/logo-chibi-avatar.png",
+			alt: "夢酷",
 		},
 		// 导航栏标题
 		title: "夢酷",
