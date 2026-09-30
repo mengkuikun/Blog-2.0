@@ -3,8 +3,8 @@
   "type": "module",
   "version": "6.6.13",
   "scripts": {
-    "dev": "astro dev",
-    "start": "astro dev",
+    "dev": "astro dev --host",
+    "start": "astro dev --host",
     "check": "astro check",
     "build": "node scripts/生成图标/index.js && astro build && pagefind --site dist",
     "preview": "astro preview",

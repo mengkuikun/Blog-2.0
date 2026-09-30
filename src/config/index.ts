@@ -19,6 +19,7 @@ export type {
 	LicenseConfig,
 	MusicPlayerConfig,
 	NavBarConfig,
+	PersonalSite,
 	ProfileConfig,
 	SakuraConfig,
 	SidebarLayoutConfig,

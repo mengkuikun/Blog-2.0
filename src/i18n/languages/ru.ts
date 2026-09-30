@@ -407,4 +407,16 @@ export const ru: Translation = {
 	[Key.ttsFallback]: "Сервис чтения недоступен, переключено на системный голос",
 	[Key.ttsNoServer]: "Сервис чтения не настроен, используется системный голос",
 	[Key.ttsTruncated]: "Текст длинный: чтение частично сокращено",
+
+	// Карточка профиля
+	[Key.profileMonthWeek]: "{month} Неделя {week}",
+	[Key.profilePostCount]: "{count} записей",
+	[Key.profileHeatmap]: "Активность публикаций",
+	[Key.otherSites]: "Другие сайты",
+	[Key.calendarWeekRemaining]: "До выходных",
+	[Key.calendarMonthRemaining]: "До конца месяца",
+	[Key.calendarYearRemaining]: "До конца года",
+	[Key.dayShort]: "дн.",
+	[Key.calendarDataUnavailable]: "Данные недоступны",
+	[Key.calendarNoHoliday]: "Нет праздников",
 };

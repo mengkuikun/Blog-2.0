@@ -1,6 +1,6 @@
 ---
 import { Icon } from "astro-icon/components";
-import { commentConfig, navBarConfig } from "@/config";
+import { commentConfig, navBarConfig, profileConfig } from "@/config";
 import { LinkPresets } from "@/constants/link-presets";
 import type { NavBarLink } from "@/types/config";
 import { url } from "@/utils/url-utils";
@@ -15,8 +15,9 @@ const processedLinks = navBarConfig.links.map((link) => {
 		typeof link === "number" ? LinkPresets[link] : link;
 	return {
 		...resolved,
-		children: resolved.children?.map((child): NavBarLink =>
-			typeof child === "number" ? LinkPresets[child] : child,
+		children: resolved.children?.map(
+			(child): NavBarLink =>
+				typeof child === "number" ? LinkPresets[child] : child,
 		),
 	};
 });
@@ -33,6 +34,33 @@ const processedLinks = navBarConfig.links.map((link) => {
       </svg>
     </button>
   </div>
+
+  <!-- 站长个人资料卡快捷入口 -->
+  <button
+    type="button"
+    class="menu-sheet__profile-card"
+    id="menu-sheet-profile-btn"
+    aria-label="查看站长资料卡"
+  >
+    <span class="menu-sheet__profile-avatar">
+      <img
+        src={profileConfig.avatar?.startsWith("/") ? url(profileConfig.avatar) : profileConfig.avatar || url("/avatar.jpg")}
+        alt=""
+        class="w-10 h-10 rounded-full object-cover"
+        loading="lazy"
+      />
+    </span>
+    <span class="menu-sheet__profile-info">
+      <span class="menu-sheet__profile-name-row">
+        <strong class="menu-sheet__profile-name">{profileConfig.name}</strong>
+        <span class="menu-sheet__profile-tag">资料卡</span>
+      </span>
+      <span class="menu-sheet__profile-desc">{profileConfig.occupation || "折腾爱好者 · 生活记录者"}</span>
+    </span>
+    <span class="menu-sheet__profile-arrow">
+      <Icon name="material-symbols:chevron-right-rounded" />
+    </span>
+  </button>
 
   <nav class="menu-sheet__nav" aria-label="主导航">
     {processedLinks.map((link) =>

@@ -396,4 +396,16 @@ export const zh_CN: Translation = {
 	[Key.ttsFallback]: "朗读服务不可用，已切换系统语音",
 	[Key.ttsNoServer]: "未配置朗读服务，使用系统语音",
 	[Key.ttsTruncated]: "文章较长，已截断部分内容朗读",
+
+	// 导航资料卡
+	[Key.profileMonthWeek]: "{month} 第 {week} 周",
+	[Key.profilePostCount]: "{count} 篇文章",
+	[Key.profileHeatmap]: "文章发布热力图",
+	[Key.otherSites]: "其他站点",
+	[Key.calendarWeekRemaining]: "距周末",
+	[Key.calendarMonthRemaining]: "距月底",
+	[Key.calendarYearRemaining]: "距年底",
+	[Key.dayShort]: "天",
+	[Key.calendarDataUnavailable]: "数据不可用",
+	[Key.calendarNoHoliday]: "近期无节日",
 };

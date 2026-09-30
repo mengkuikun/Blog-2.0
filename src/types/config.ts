@@ -234,8 +234,16 @@ export type NavBarSearchConfig = {
 	method: NavBarSearchMethod;
 };
 
+export type PersonalSite = {
+	name: string;
+	url: string;
+	icon: string;
+	description?: string;
+};
+
 export type NavBarConfig = {
 	links: (NavBarLink | LinkPreset)[];
+	personalSites?: PersonalSite[];
 };
 
 export type HomePortfolioShutterPanel = {
