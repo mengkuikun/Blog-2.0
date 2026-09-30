@@ -4,6 +4,7 @@ import {
 	type NavBarLink,
 	type NavBarSearchConfig,
 	NavBarSearchMethod,
+	type PersonalSite,
 } from "../types/config";
 import { siteConfig } from "./siteConfig";
 
@@ -166,8 +167,35 @@ const getDynamicNavBarConfig = (): NavBarConfig => {
 		],
 	});
 
-	// 仅返回链接，其它导航搜索相关配置在模块顶层常量中独立导出
-	return { links } as NavBarConfig;
+	// 个人网站（展示在资料卡「我的网站」面板中作为配置兜底）
+	const personalSites: PersonalSite[] = [
+		{
+			name: "个人博客",
+			url: "https://imki.cn",
+			icon: "/avatar.jpg",
+			description: "夢酷的个人博客主页，分享技术与生活记录。",
+		},
+		{
+			name: "图床服务 | CloudFlare-ImgBed",
+			url: "https://img.imki.cn",
+			icon: "simple-icons:cloudflare",
+			description: "个人自建图床与文件托管服务，支持多渠道存储与博客相册直链。",
+		},
+		{
+			name: "Umami",
+			url: "https://umami.imki.cn",
+			icon: "https://umami.is/favicon.ico",
+			description: "站点访问量统计后台（自建 Umami）。",
+		},
+		{
+			name: "Waline评论系统",
+			url: "https://comment.imki.cn",
+			icon: "https://waline.js.org/favicon.ico",
+			description: "本站评论与文章浏览量统计服务（自建 Waline 实例）。",
+		},
+	];
+
+	return { links, personalSites } as NavBarConfig;
 };
 
 // 导航搜索配置

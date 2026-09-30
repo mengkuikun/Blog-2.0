@@ -405,4 +405,16 @@ export const ja: Translation = {
 		"読み上げサービスが利用できないため、システム音声に切り替えました",
 	[Key.ttsNoServer]: "読み上げサービス未設定、システム音声を使用します",
 	[Key.ttsTruncated]: "記事が長いため、一部を省略して読み上げます",
+
+	// プロフィールカード
+	[Key.profileMonthWeek]: "{month} 第{week}週",
+	[Key.profilePostCount]: "{count}件の記事",
+	[Key.profileHeatmap]: "投稿ヒートマップ",
+	[Key.otherSites]: "他のサイト",
+	[Key.calendarWeekRemaining]: "週末まで",
+	[Key.calendarMonthRemaining]: "月末まで",
+	[Key.calendarYearRemaining]: "年末まで",
+	[Key.dayShort]: "日",
+	[Key.calendarDataUnavailable]: "データ取得失敗",
+	[Key.calendarNoHoliday]: "直近の祝日なし",
 };

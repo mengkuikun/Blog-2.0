@@ -18,7 +18,7 @@ export const profileConfig: ProfileConfig = {
 	displayName: "MengKu",
 
 	// 职业/身份标签
-	occupation: "[技术博主]",
+	occupation: "[折腾爱好者 · 生活记录者]",
 
 	// 个人签名（支持多条，会循环打字+删除效果）
 	bio: ["Crafting Dreams In Code."],

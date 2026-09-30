@@ -405,4 +405,16 @@ export const en: Translation = {
 	[Key.ttsFallback]: "Reading service unavailable, switched to system voice",
 	[Key.ttsNoServer]: "Reading service not configured, using system voice",
 	[Key.ttsTruncated]: "Article is long; reading was truncated",
+
+	// Profile card
+	[Key.profileMonthWeek]: "{month} Week {week}",
+	[Key.profilePostCount]: "{count} posts",
+	[Key.profileHeatmap]: "Post Heatmap",
+	[Key.otherSites]: "Other Sites",
+	[Key.calendarWeekRemaining]: "To Weekend",
+	[Key.calendarMonthRemaining]: "To Month End",
+	[Key.calendarYearRemaining]: "To Year End",
+	[Key.dayShort]: "d",
+	[Key.calendarDataUnavailable]: "Unavailable",
+	[Key.calendarNoHoliday]: "No Upcoming Holidays",
 };

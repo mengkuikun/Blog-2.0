@@ -389,6 +389,18 @@ enum I18nKey {
 	ttsFallback = "ttsFallback",
 	ttsNoServer = "ttsNoServer",
 	ttsTruncated = "ttsTruncated",
+
+	// 导航资料卡
+	profileMonthWeek = "profileMonthWeek",
+	profilePostCount = "profilePostCount",
+	profileHeatmap = "profileHeatmap",
+	otherSites = "otherSites",
+	calendarWeekRemaining = "calendarWeekRemaining",
+	calendarMonthRemaining = "calendarMonthRemaining",
+	calendarYearRemaining = "calendarYearRemaining",
+	dayShort = "dayShort",
+	calendarDataUnavailable = "calendarDataUnavailable",
+	calendarNoHoliday = "calendarNoHoliday",
 }
 
 export default I18nKey;

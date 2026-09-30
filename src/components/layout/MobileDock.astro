@@ -135,6 +135,13 @@ import { Icon } from "astro-icon/components";
 		els.overlay?.addEventListener("click", function() {
 			closeMenuSheet();
 		});
+		document.getElementById("menu-sheet-profile-btn")?.addEventListener("click", function(e) {
+			e.stopPropagation();
+			closeMenuSheet();
+			window.setTimeout(function() {
+				window.dispatchEvent(new CustomEvent("navbar-profile:toggle"));
+			}, 150);
+		});
 	}
 
 	if (document.readyState === "loading") {
@@ -195,6 +202,9 @@ import { Icon } from "astro-icon/components";
 
 	document.addEventListener("swup:content:replaced", function() {
 		closeMenuSheet();
+		bindMenuSheetCloseEvents();
+		lastScrollY = window.scrollY;
+		dockEl.classList.remove("is-hidden");
 	});
 })();
 </script>
