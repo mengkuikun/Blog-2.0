@@ -748,6 +748,8 @@ scope: layout | config | i18n | styles | utils | components | content
 
 **每次修改后必须 `pnpm build` + `pnpm check` + `pnpm exec biome ci ./src` 全绿再提交**（`--reporter=github` 与 CI 完全一致，2026-02 CI 曾因 `useTemplate` 与 `.superpowers` 误跟踪红过）**。**
 
+> 🚨 **远程推送铁律（严禁擅自 push）**：用户没有明确说“推送到远程”或“push”之前，**一律禁止执行 `git push`**。即使本地测试全绿、提交完毕，也只能留在本地仓库。任何推送操作必须等待站长明确下达推送指令。
+
 > 本仓库 `biome ci` 仅覆盖 `./src`（package.json 固定 `2.5.7`），但 **任何修改后都必须跑**；新增目录（非 `src`）需提前加入 `.gitignore`。
 
 ### 大版本/多功能迭代推送规范：合并节点法（Non-Fast-Forward Merge Node）
