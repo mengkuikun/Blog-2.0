@@ -45,6 +45,8 @@
   --link-active: oklch(0.30 0 0);
 
   --float-panel-bg: oklch(1 0 0);
+  --navbar-highlight-bg: oklch(0.10 0 0);
+  --navbar-highlight-text: oklch(0.98 0 0);
 
   --scrollbar-bg-light: rgba(0, 0, 0, 0.4);
   --scrollbar-bg-hover-light: rgba(0, 0, 0, 0.5);
@@ -144,6 +146,8 @@
   --link-active: oklch(0.80 0 0);
 
   --float-panel-bg: oklch(0.10 0 0);
+  --navbar-highlight-bg: oklch(0.98 0 0);
+  --navbar-highlight-text: oklch(0.10 0 0);
 
   --scrollbar-bg: var(--scrollbar-bg-dark);
   --scrollbar-bg-hover: var(--scrollbar-bg-hover-dark);

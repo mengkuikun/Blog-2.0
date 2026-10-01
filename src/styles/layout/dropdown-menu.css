@@ -1,0 +1,181 @@
+/* ============================================
+   导航共享下拉面板与悬停高亮样式
+   移植自 mmzming 方案：单一下拉面板跟随滑动 + 高反差高亮胶囊
+   ============================================ */
+
+.dropdown-container {
+	position: relative;
+	z-index: 10;
+}
+
+.dropdown-container > a,
+.dropdown-container > button {
+	border: 1.5px solid transparent;
+	border-radius: 9999px;
+	transition: color 0.2s ease, border-color 0.25s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+	background-color: transparent !important;
+}
+
+.dropdown-container > a::before,
+.dropdown-container > button::before,
+.dropdown-container:hover > a::before,
+.dropdown-container:hover > button::before,
+.dropdown-container:focus-within > a::before,
+.dropdown-container:focus-within > button::before {
+	background-color: transparent !important;
+	scale: 0.85;
+}
+
+.dropdown-container:hover > a,
+.dropdown-container:hover > button,
+.dropdown-container:focus-within > a,
+.dropdown-container:focus-within > button {
+	border-color: transparent;
+	background-color: transparent !important;
+}
+
+/* 悬停高亮态：文字、图标、箭头反差变色 */
+.navbar-nav .dropdown-container.is-highlighted > a,
+.navbar-nav .dropdown-container.is-highlighted > button {
+	color: var(--navbar-highlight-text) !important;
+}
+
+.navbar-nav .dropdown-container.is-highlighted .dropdown-arrow {
+	color: var(--navbar-highlight-text) !important;
+}
+
+/* 箭头旋转：悬停、聚焦或面板展开时向上翻转 */
+.dropdown-container:hover .dropdown-arrow,
+.dropdown-container:focus-within .dropdown-arrow,
+.dropdown-container.is-dropdown-open .dropdown-arrow {
+	transform: translateY(-50%) rotate(180deg);
+}
+
+/* ── 共享下拉面板：整条导航只有一个，悬停跟随导航项左右滑动 ── */
+.navbar-dropdown-panel {
+	position: absolute;
+	top: 100%;
+	left: 0;
+	/* 保留悬停过渡区防止鼠标划向面板时收起 */
+	padding-top: 1.15rem;
+	opacity: 0;
+	visibility: hidden;
+	pointer-events: none;
+	transform: translateY(-8px);
+	transition:
+		opacity 0.2s ease-out,
+		visibility 0.2s ease-out,
+		transform 0.2s ease-out,
+		left 0.25s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+	z-index: 50;
+}
+
+.navbar-dropdown-panel.is-open {
+	opacity: 1;
+	visibility: visible;
+	pointer-events: auto;
+	transform: translateY(0);
+}
+
+/* 箱体：面板的可见部分，宽高由控制器自适应当前内容页并做平滑过渡 */
+.navbar-dropdown-box {
+	position: relative;
+	box-sizing: content-box;
+	border: 1.5px solid var(--deep-text);
+	border-radius: 0.75rem;
+	background: var(--float-panel-bg);
+	color: var(--deep-text);
+	box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.2), 0 8px 10px -6px rgba(0, 0, 0, 0.2);
+	overflow: hidden;
+	transition:
+		width 0.25s cubic-bezier(0.25, 0.46, 0.45, 0.94),
+		height 0.25s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+}
+
+:root.dark .navbar-dropdown-box {
+	box-shadow: 0 12px 30px -4px rgba(0, 0, 0, 0.65);
+}
+
+/* 指向箭头：挂在面板上，指向触发项中心 */
+.navbar-dropdown-arrow {
+	position: absolute;
+	top: calc(1.15rem - 0.45rem + 1.5px);
+	left: 1.75rem;
+	z-index: 1;
+	width: 0.75rem;
+	height: 0.75rem;
+	border-top: 1.5px solid var(--deep-text);
+	border-left: 1.5px solid var(--deep-text);
+	background: var(--float-panel-bg);
+	transform: rotate(45deg);
+	transition: left 0.25s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+}
+
+/* 内容页：绝对定位堆叠，仅激活页可见，切换时淡入淡出 */
+.navbar-dropdown-page {
+	position: absolute;
+	top: 0;
+	left: 0;
+	box-sizing: border-box;
+	width: max-content;
+	min-width: 12rem;
+	padding: 0.5rem;
+	opacity: 0;
+	visibility: hidden;
+	pointer-events: none;
+	transition: opacity 0.2s ease-out, visibility 0.2s ease-out;
+}
+
+.navbar-dropdown-page.is-active {
+	opacity: 1;
+	visibility: visible;
+	pointer-events: auto;
+}
+
+/* 选项样式 */
+.navbar-dropdown-page .dropdown-item {
+	display: flex;
+	align-items: center;
+	justify-content: flex-start;
+	padding: 0.5rem 0.875rem;
+	border-radius: 0.5rem;
+	font-weight: 500;
+	font-size: 0.925rem;
+	color: var(--deep-text);
+	text-decoration: none;
+	transition: background-color 0.15s ease, color 0.15s ease;
+	background-color: transparent !important;
+	margin-bottom: 0.125rem;
+}
+
+.navbar-dropdown-page .dropdown-item:last-child {
+	margin-bottom: 0;
+}
+
+.navbar-dropdown-page .dropdown-item:hover {
+	background-color: color-mix(in oklch, var(--deep-text) 8%, transparent) !important;
+	color: var(--deep-text);
+}
+
+.navbar-dropdown-page .dropdown-item:active {
+	background-color: color-mix(in oklch, var(--deep-text) 14%, transparent) !important;
+}
+
+.navbar-dropdown-page .dropdown-item .navbar-icon {
+	flex-shrink: 0;
+}
+
+@media (max-width: 768px) {
+	.dropdown-container {
+		display: none;
+	}
+}
+
+@media (prefers-reduced-motion: reduce) {
+	.navbar-dropdown-panel,
+	.navbar-dropdown-box,
+	.navbar-dropdown-arrow,
+	.navbar-dropdown-page {
+		transition-duration: 0.01ms;
+	}
+}

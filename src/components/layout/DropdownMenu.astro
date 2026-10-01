@@ -1,30 +1,27 @@
 ---
 import Icon from "@components/common/Icon.astro";
-import DropdownItem from "@/components/common/DropdownItem.astro";
-import DropdownPanel from "@/components/common/DropdownPanel.astro";
 import { LinkPresets } from "@/constants/link-presets";
 import { LinkPreset, type NavBarLink } from "@/types/config";
 import { url } from "@/utils/url-utils";
 
 interface Props {
 	link: NavBarLink;
+	index: number;
 	class?: string;
 }
 
-const { link, class: className } = Astro.props;
+const { link, index, class: className } = Astro.props;
 
-// 检查 link 是否存在
 if (!link) {
 	return null;
 }
 
-// 转换子菜单中的LinkPreset为NavBarLink
+// 转换子菜单中的 LinkPreset 为 NavBarLink
 const processedLink = {
 	...link,
 	children: link.children
 		?.map((child: NavBarLink | LinkPreset): NavBarLink | null => {
 			if (typeof child === "number") {
-				// 检查 LinkPreset 是否存在于 LinkPresets 中
 				if (child in LinkPresets) {
 					return LinkPresets[child as LinkPreset];
 				}
@@ -35,239 +32,49 @@ const processedLink = {
 		.filter((child): child is NavBarLink => child !== null),
 };
 
-const hasChildren = processedLink.children && processedLink.children.length > 0;
+const hasChildren = !!processedLink.children && processedLink.children.length > 0;
 ---
 
-<div class:list={["dropdown-container", className]} data-dropdown>
+<div
+	class:list={["dropdown-container", className]}
+	data-dropdown
+	data-dropdown-index={index}
+>
 	{hasChildren ? (
-		<>
-			{/* 主按钮 - 点击展开下拉菜单，不跳转 */}
-			<button
-				aria-label={processedLink.name}
-				aria-haspopup="true"
-				aria-expanded="false"
-				class="btn-plain rounded-lg h-9 font-bold px-3 active:scale-95 dropdown-trigger-link navbar-link-item"
-				data-dropdown-trigger
-			>
-				<div class="flex items-center">
-					{processedLink.icon && <Icon name={processedLink.icon} class="text-[1.1rem] mr-2 navbar-icon" />}
-					<span class="navbar-link-text">{processedLink.name}</span>
-					<Icon name="material-symbols:keyboard-arrow-down-rounded" class="text-[1.25rem] transition-transform duration-200 dropdown-arrow ml-1" />
-				</div>
-			</button>
-			{/* 下拉菜单 */}
-			<div class="dropdown-menu" data-dropdown-menu>
-				<DropdownPanel class="dropdown-content">
-					{processedLink.children?.map((child, index) => (
-						<DropdownItem
-							href={child.external ? child.url : url(child.url)}
-							target={child.external ? "_blank" : undefined}
-							isLast={index === (processedLink.children?.length || 0) - 1}
-							class="dropdown-item"
-						>
-							{child.icon && <Icon name={child.icon} class="text-[1.25rem] mr-3 navbar-icon" />}
-							<span>{child.name}</span>
-							{child.external && (
-								<Icon name="fa7-solid:arrow-up-right-from-square" class="text-[0.75rem] text-black/25 dark:text-white/25 ml-auto" />
-							)}
-						</DropdownItem>
-					))}
-				</DropdownPanel>
+		<button
+			aria-label={processedLink.name}
+			aria-haspopup="true"
+			aria-expanded="false"
+			class="btn-plain scale-animation rounded-lg h-9 font-bold px-3 pr-7 active:scale-95 dropdown-trigger relative"
+			data-dropdown-trigger
+			type="button"
+		>
+			<div class="flex items-center gap-1.5">
+				{processedLink.icon && <Icon name={processedLink.icon} class="text-[1.05rem]" />}
+				<span>{processedLink.name}</span>
 			</div>
-		</>
+			<Icon
+				name="material-symbols:keyboard-arrow-down-rounded"
+				class="text-[1.1rem] transition-transform duration-200 dropdown-arrow absolute right-2.5 top-1/2 -translate-y-1/2"
+			/>
+		</button>
 	) : (
 		<a
 			aria-label={processedLink.name}
 			href={processedLink.external ? processedLink.url : url(processedLink.url)}
 			target={processedLink.external ? "_blank" : null}
-			class="btn-plain rounded-lg h-9 font-bold px-3 active:scale-95 navbar-link-item"
+			class="btn-plain scale-animation rounded-lg h-9 font-bold px-3 active:scale-95"
 		>
-			<div class="flex items-center">
-				{processedLink.icon && <Icon name={processedLink.icon} class="text-[1.1rem] mr-2 navbar-icon" />}
-				<span class="navbar-link-text">{processedLink.name}</span>
-				{processedLink.external && <Icon name="fa7-solid:arrow-up-right-from-square" class="text-[0.875rem] transition -translate-y-px ml-1 text-black/20 dark:text-white/20" />}
+			<div class="flex items-center gap-1.5">
+				{processedLink.icon && <Icon name={processedLink.icon} class="text-[1.05rem]" />}
+				<span>{processedLink.name}</span>
+				{processedLink.external && (
+					<Icon
+						name="fa7-solid:arrow-up-right-from-square"
+						class="text-[0.8rem] transition -translate-y-px ml-1 text-black/20 dark:text-white/20"
+					/>
+				)}
 			</div>
 		</a>
 	)}
 </div>
-
-<style>
-	@reference "../../styles/main.css";
-
-	.dropdown-container {
-		@apply relative;
-	}
-
-	.dropdown-menu {
-		@apply absolute top-full left-0 pt-2 opacity-0 invisible pointer-events-none transition-all duration-200 ease-out transform translate-y-[-8px] z-50;
-	}
-
-	/* 悬停时显示下拉菜单 */
-	.dropdown-container:hover .dropdown-menu,
-	.dropdown-container:focus-within .dropdown-menu,
-	.dropdown-container.dropdown-open .dropdown-menu {
-		@apply opacity-100 visible pointer-events-auto translate-y-0;
-	}
-
-	/* 悬停时旋转箭头 */
-	.dropdown-container:hover .dropdown-arrow,
-	.dropdown-container:focus-within .dropdown-arrow,
-	.dropdown-container.dropdown-open .dropdown-arrow {
-		@apply rotate-180;
-	}
-
-	.dropdown-content {
-		@apply min-w-[12rem];
-	}
-
-	/* 移动端隐藏下拉菜单 */
-	@media (max-width: 768px) {
-		.dropdown-container {
-			@apply hidden;
-		}
-	}
-
-	/* ============================================
-	 * 导航栏链接下划线效果
-	 * 悬停/激活时：文字变为主题色 + 底部出现渐变下划线
-	 * ============================================ */
-	.navbar-link-item {
-		@apply relative no-underline;
-	}
-
-	.navbar-link-item .navbar-link-text {
-		@apply relative inline-block;
-	}
-
-	/* 下划线伪元素 */
-	.navbar-link-item .navbar-link-text::after {
-		content: '';
-		position: absolute;
-		bottom: -2px;
-		left: 0;
-		width: 100%;
-		height: 2px;
-		background: linear-gradient(90deg, var(--primary), var(--primary-light, var(--primary)));
-		border-radius: 1px;
-		transform: scaleX(0);
-		transform-origin: center;
-		transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-	}
-
-	/* 悬停时显示下划线 */
-	.navbar-link-item:hover .navbar-link-text {
-		color: var(--primary);
-	}
-
-	.navbar-link-item:hover .navbar-link-text::after {
-		transform: scaleX(1);
-	}
-
-	/* 激活/当前页面链接 */
-	.navbar-link-item[aria-current="page"] .navbar-link-text,
-	.navbar-link-item[data-active="true"] .navbar-link-text {
-		color: var(--primary);
-	}
-
-	.navbar-link-item[aria-current="page"] .navbar-link-text::after,
-	.navbar-link-item[data-active="true"] .navbar-link-text::after {
-		transform: scaleX(1);
-	}
-
-	/* 点击时保持主题色 */
-	.navbar-link-item:active .navbar-link-text {
-		color: var(--primary);
-	}
-
-	/* 下拉箭头颜色跟随主题色 */
-	.navbar-link-item:hover .dropdown-arrow,
-	.navbar-link-item:focus .dropdown-arrow {
-		color: var(--primary);
-	}
-
-	/* button 重置样式，确保与 a 标签外观一致 */
-	.dropdown-trigger-link {
-		cursor: pointer;
-		font-family: inherit;
-		font-size: inherit;
-		line-height: inherit;
-	}
-</style>
-
-<script is:inline>
-	(function() {
-		function initDesktopDropdowns() {
-			var dropdowns = document.querySelectorAll('[data-dropdown]');
-
-			dropdowns.forEach(function(dropdown) {
-				var trigger = dropdown.querySelector('[data-dropdown-trigger]');
-				var menu = dropdown.querySelector('[data-dropdown-menu]');
-				if (!trigger || !menu) return;
-
-				// 清除旧的事件监听器（通过克隆节点）
-				var newTrigger = trigger.cloneNode(true);
-				trigger.parentNode && trigger.parentNode.replaceChild(newTrigger, trigger);
-
-				// 点击触发器 → 切换下拉菜单
-				newTrigger.addEventListener('click', function(e) {
-					e.preventDefault();
-					e.stopPropagation();
-					dropdown.classList.toggle('dropdown-open');
-					var isOpen = dropdown.classList.contains('dropdown-open');
-					newTrigger.setAttribute('aria-expanded', String(isOpen));
-				});
-
-				// 键盘导航支持
-				newTrigger.addEventListener('keydown', function(e) {
-					if (e.key === 'ArrowDown') {
-						e.preventDefault();
-						dropdown.classList.add('dropdown-open');
-						newTrigger.setAttribute('aria-expanded', 'true');
-						var firstItem = menu.querySelector('.dropdown-item');
-						if (firstItem) firstItem.focus();
-					} else if (e.key === 'Escape') {
-						dropdown.classList.remove('dropdown-open');
-						newTrigger.setAttribute('aria-expanded', 'false');
-						newTrigger.focus();
-					}
-				});
-			});
-
-			// 点击外部关闭所有下拉菜单
-			document.addEventListener('click', function(e) {
-				var target = e.target;
-				dropdowns.forEach(function(dropdown) {
-					if (!dropdown.contains(target)) {
-						dropdown.classList.remove('dropdown-open');
-						var trigger = dropdown.querySelector('[data-dropdown-trigger]');
-						if (trigger) trigger.setAttribute('aria-expanded', 'false');
-					}
-				});
-			});
-
-			// Escape 关闭所有下拉菜单
-			document.addEventListener('keydown', function(e) {
-				if (e.key === 'Escape') {
-					dropdowns.forEach(function(dropdown) {
-						dropdown.classList.remove('dropdown-open');
-						var trigger = dropdown.querySelector('[data-dropdown-trigger]');
-						if (trigger) {
-							trigger.setAttribute('aria-expanded', 'false');
-							trigger.focus();
-						}
-					});
-				}
-			});
-		}
-
-		// 首次加载时初始化
-		if (document.readyState === 'loading') {
-			document.addEventListener('DOMContentLoaded', initDesktopDropdowns);
-		} else {
-			initDesktopDropdowns();
-		}
-
-		// Swup 导航后重新初始化
-		document.addEventListener('swup:content:replaced', initDesktopDropdowns);
-	})();
-</script>

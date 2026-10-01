@@ -80,19 +80,19 @@ src/
 │       guestbook, life/notebooks, movies-games/, music, projects, search,
 │       sponsor, rss, robots.txt, og
 ├── plugins/             # 自定义 remark/rehype 插件 (10)
-├── styles/              # CSS 样式（75 个文件，含 navbar-profile-card、about 技术栈/时间线/更新日志图谱、equipment 卡片）
+├── styles/              # CSS 样式（76 个文件，含 navbar-profile-card、dropdown-menu、about 技术栈/时间线/更新日志图谱、equipment 卡片）
 │   ├── tokens/          # 设计令牌：colors, breakpoints, animation, z-index
 │   ├── base/            # reset, utilities
 │   ├── components/      # 组件样式
 │   ├── features/        # 功能样式（含 tts-player.css 文章朗读播放器）
-│   ├── layout/          # 布局样式（含 navbar-profile-card.css）
+│   ├── layout/          # 布局样式（含 navbar-profile-card.css, dropdown-menu.css）
 │   ├── pages/           # 页面样式
 │   ├── transitions/     # Swup 过渡动画
 │   └── vendor/          # 第三方覆盖
 ├── types/               # TypeScript 类型：config.ts, bangumi.ts, guestbook-chat.ts
-└── utils/               # 工具函数（43 个文件，含 calendar-milestones.ts / navbar-profile-controller.ts / changelog.ts / tag-graph 控制器 / tts-text 正文提取等）
+└── utils/               # 工具函数（44 个文件，含 calendar-milestones.ts / navbar-profile-controller.ts / navbar-dropdown-controller.ts / changelog.ts / tag-graph 控制器 / tts-text 正文提取等）
     ├── 8 个控制器模块   # 见第 10 节
-    └── 33 个业务工具    # content-utils, category-tree（文件夹即分类，多级 `a/b` 推导 + CategoryNode 树）, date-utils, image-utils, url-utils, tts-text（朗读正文提取）...
+    └── 34 个业务工具    # content-utils, category-tree（文件夹即分类，多级 `a/b` 推导 + CategoryNode 树）, navbar-dropdown-controller, date-utils, image-utils, url-utils, tts-text（朗读正文提取）...
 
 # 根目录其他重要文件
 .pages.yml                # PagesCMS 后台配置（11 集合声明，见第 19 节）
