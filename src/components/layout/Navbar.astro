@@ -155,6 +155,7 @@ import {
 (function() {
 	var _hoverSliderAbortController: AbortController | null = null;
 	var _hoverSliderMouseEnterHandlers: Array<[Element, (e: Event) => void]> = [];
+	var _syncActiveItem: (() => void) | null = null;
 
 	function cleanupHoverSlider() {
 		if (_hoverSliderAbortController) {
@@ -165,6 +166,7 @@ import {
 			entry[0].removeEventListener('mouseenter', entry[1]);
 		});
 		_hoverSliderMouseEnterHandlers = [];
+		_syncActiveItem = null;
 	}
 
 	function normalizePath(p: string): string {
@@ -197,6 +199,11 @@ import {
 	}
 
 	function initHoverSlider() {
+		if (_syncActiveItem) {
+			_syncActiveItem();
+			return;
+		}
+
 		cleanupHoverSlider();
 
 		const navContainer = document.querySelector<HTMLElement>('[data-navbar-nav] .navbar-nav');
@@ -243,14 +250,21 @@ import {
 
 			if (activeItem) {
 				containerEl.classList.add('nav-has-active');
-				requestAnimationFrame(function() {
-					moveHighlight(containerEl, borderEl, activeItem);
-				});
+				moveHighlight(containerEl, borderEl, activeItem);
 			} else {
 				containerEl.classList.remove('nav-has-active');
 				borderEl.style.opacity = '0';
 			}
 		}
+
+		_syncActiveItem = function() {
+			// 双 rAF 调度：避开 Swup 换页 DOM 灌入与组件挂载时的同步重排高峰，保证位移 60fps 丝滑
+			requestAnimationFrame(function() {
+				requestAnimationFrame(function() {
+					detectActiveItem();
+				});
+			});
+		};
 
 		navItems.forEach(function(item) {
 			var handler = function() {
@@ -272,13 +286,21 @@ import {
 		}, { signal: _hoverSliderAbortController.signal });
 
 		initNavbarDropdownDelegation();
-		window.addEventListener('resize', repositionNavbarDropdown, {
+		window.addEventListener('resize', function() {
+			repositionNavbarDropdown();
+			var activeItem = containerEl.querySelector<HTMLElement>('.nav-item-active');
+			if (activeItem) {
+				moveHighlight(containerEl, borderEl, activeItem);
+			}
+		}, {
 			passive: true,
 			signal: _hoverSliderAbortController.signal,
 		});
 
-		detectActiveItem();
-		document.addEventListener('astro:page-load', detectActiveItem, { signal: _hoverSliderAbortController.signal });
+		// 首次加载立即定位
+		requestAnimationFrame(function() {
+			detectActiveItem();
+		});
 	}
 
 	initHoverSlider();
