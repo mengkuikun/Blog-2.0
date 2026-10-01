@@ -2,6 +2,7 @@
 import { render } from "astro:content";
 import * as path from "node:path";
 import Comment from "@components/comment/index.astro";
+import ImageWrapper from "@components/common/ImageWrapper.astro";
 import Markdown from "@components/common/Markdown.astro";
 import KatexManager from "@components/features/KatexManager.astro";
 import License from "@components/misc/License.astro";
@@ -235,27 +236,81 @@ const jsonLd = {
   </div>
 </div>
 
-  <!-- Layer 2: 简介卡（AI 摘要 UI） -->
+  <!-- Layer 2: 三合一引言卡（时效提醒 + AI 摘要 + 封面图） -->
   {
-    entry.data.description && (
-      <div class="px-3 md:px-6 lg:px-10 mb-2">
+    (entry.data.description || processedImage || siteConfig.showLastModified) && (
+      <div class="mb-4">
         <div class="post-intro-card">
-          <div class="post-intro-card__header">
-            <div class="post-intro-card__icon-box">
-              {(entry.data as any).descriptionSource !== "manual" ? (
-                <>
-                  <img src="/assets/images/emoji/openai-dark.png" alt="" class="post-intro-card__ai-img post-intro-card__ai-img--light" width="18" height="18" />
-                  <img src="/assets/images/emoji/openai-light.png" alt="" class="post-intro-card__ai-img post-intro-card__ai-img--dark" width="18" height="18" />
-                </>
-              ) : (
-                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24"><path fill="currentColor" d="M5 21q-.825 0-1.412-.587T3 19V5q0-.825.588-1.412T5 3h14q.825 0 1.413.588T21 5v14q0 .825-.587 1.413T19 21H5Zm0-2h14V5H5v14Zm1-2h3v-2H6v2Zm0-4h12V7H6v6Z"/></svg>
-              )}
-            </div>
-            <span class="post-intro-card__label">
-              {(entry.data as any).descriptionSource !== "manual" ? "AI 摘要" : "简介"}
-            </span>
-          </div>
-          <p class="post-intro-card__desc">{entry.data.description}</p>
+          {/* 1. 时效提醒 */}
+          {siteConfig.showLastModified && (
+            <>
+              <div
+                id="outdated-info"
+                class="post-intro-card__outdated hidden"
+                data-date={(entry.data.updated || entry.data.published).toISOString()}
+                data-threshold={siteConfig.outdatedThreshold ?? 30}
+              >
+                <div class="post-intro-card__section">
+                  <div class="post-intro-card__row">
+                    <Icon name="material-symbols:info-outline-rounded" class="post-intro-card__icon" />
+                    <span class="post-intro-card__text">
+                      {i18n(I18nKey.lastModifiedPrefix)}{formatDateToYYYYMMDD(entry.data.updated || entry.data.published)}
+                      <span id="days-ago-text-intro" class="outdated-days" data-template={i18n(I18nKey.lastModifiedDaysAgo)}></span>
+                      <span id="outdated-warning-intro" class="outdated-warning hidden">，{i18n(I18nKey.lastModifiedOutdated)}</span>
+                    </span>
+                  </div>
+                </div>
+              </div>
+              <div class="post-intro-card__divider"></div>
+            </>
+          )}
+
+          {/* 2. AI 摘要 */}
+          {entry.data.description && (
+            <details class="post-intro-card__details" open>
+              <summary class="post-intro-card__summary">
+                <span class="post-intro-card__summary-title">
+                  <Icon name="material-symbols:auto-awesome" class="post-intro-card__summary-icon" />
+                  <span>{(entry.data as any).descriptionSource !== "manual" ? "AI 摘要" : "简介"}</span>
+                  {(entry.data as any).descriptionSource !== "manual" && (
+                    <span class="post-intro-card__summary-model">- DeepSeek</span>
+                  )}
+                </span>
+                <Icon name="material-symbols:keyboard-arrow-down-rounded" class="post-intro-card__summary-arrow" />
+              </summary>
+              <div class="post-intro-card__section post-intro-card__section--summary">
+                <p class="post-intro-card__desc">{entry.data.description}</p>
+              </div>
+            </details>
+          )}
+
+          {/* 分割线（仅在同时有摘要和封面图时渲染） */}
+          {entry.data.description && processedImage && (
+            <div class="post-intro-card__divider"></div>
+          )}
+
+          {/* 3. 封面图折叠 */}
+          {processedImage && (
+            <details class="post-intro-card__details" open>
+              <summary class="post-intro-card__summary">
+                <span class="post-intro-card__summary-title">
+                  <Icon name="material-symbols:image-outline-rounded" class="post-intro-card__summary-icon" />
+                  <span>封面图</span>
+                </span>
+                <Icon name="material-symbols:keyboard-arrow-down-rounded" class="post-intro-card__summary-arrow" />
+              </summary>
+              <div class="post-intro-card__section post-intro-card__section--cover">
+                <div id="post-cover" class="post-intro-card__cover">
+                  <ImageWrapper
+                    src={processedImage}
+                    alt={entry.data.title}
+                    basePath={getFileDirFromPath(entry.filePath || "")}
+                    class="w-full h-auto object-cover rounded-xl"
+                  />
+                </div>
+              </div>
+            </details>
+          )}
         </div>
       </div>
     )
@@ -279,54 +334,7 @@ const jsonLd = {
     </div>
   </div>
 
-  <!-- 上次编辑时间 -->
-  {
-    siteConfig.showLastModified && (() => {
-      const lastModified = dayjs(
-        entry.data.updated || entry.data.published
-      );
-      const now = dayjs();
-      const daysDiff = now.diff(lastModified, "day");
-      // 使用用户定义的阈值，如果没有定义则默认为1天
-      const outdatedThreshold = siteConfig.outdatedThreshold ?? 1;
-      const shouldShowOutdatedCard = daysDiff >= outdatedThreshold;
 
-      return shouldShowOutdatedCard ? (
-        <div class="card-base p-6 mb-4">
-          <div class="flex items-center gap-2">
-            <div class="transition h-9 w-9 rounded-lg overflow-hidden relative flex items-center justify-center mr-0">
-              <Icon
-                name="material-symbols:history-rounded"
-                class="text-4xl text-(--primary) transition-transform group-hover:translate-x-0.5 bg-(--enter-btn-bg) p-2 rounded-md"
-              />
-            </div>
-
-            {(() => {
-              const dateStr = lastModified.format("YYYY-MM-DD");
-              const isOutdated = daysDiff >= 1;
-
-              return (
-                <div class="flex flex-col gap-0.1">
-                  <div class="text-[1.0rem] leading-tight text-black/75 dark:text-white/75">
-                    {`${i18n(I18nKey.lastModifiedPrefix)}${dateStr}${
-                      isOutdated
-                        ? `，${i18n(I18nKey.lastModifiedDaysAgo).replace("{days}", daysDiff.toString())}`
-                        : ""
-                    }`}
-                  </div>
-                  {isOutdated && (
-                    <p class="text-[0.8rem] leading-tight text-black/75 dark:text-white/75">
-                      {i18n(I18nKey.lastModifiedOutdated)}
-                    </p>
-                  )}
-                </div>
-              );
-            })()}
-          </div>
-        </div>
-      ) : null;
-    })()
-  }
 
   <div
     class="flex flex-col md:flex-row justify-between mb-4 gap-4 overflow-hidden w-full"
@@ -386,4 +394,33 @@ const jsonLd = {
 
   <!-- 评论 -->
   {entry.data.comment && <Comment post={entry} />}
+
+  <!-- 时效性客户端动态计算脚本 -->
+  <script is:inline>
+    function updateOutdatedNotice() {
+      const el = document.getElementById("outdated-info");
+      if (!el || !el.dataset.date) return;
+      const targetDate = new Date(el.dataset.date);
+      const diffDays = Math.floor((Date.now() - targetDate.getTime()) / (1000 * 60 * 60 * 24));
+      const threshold = Number(el.dataset.threshold || 30);
+      if (diffDays >= threshold) {
+        el.classList.remove("hidden");
+        if (diffDays >= 1) {
+          const daysText = document.getElementById("days-ago-text-intro");
+          if (daysText && daysText.dataset.template) {
+            daysText.textContent = `，${daysText.dataset.template.replace("{days}", diffDays.toString())}`;
+          }
+          const warningEl = document.getElementById("outdated-warning-intro");
+          if (warningEl) warningEl.classList.remove("hidden");
+        }
+      }
+    }
+
+    updateOutdatedNotice();
+
+    if (!window.__postOutdatedNoticeInited) {
+      window.__postOutdatedNoticeInited = true;
+      document.addEventListener("swup:content:replaced", updateOutdatedNotice);
+    }
+  </script>
 </MainGridLayout>
