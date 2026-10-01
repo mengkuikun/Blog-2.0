@@ -48,21 +48,19 @@
 }
 
 .dropdown-container .dropdown-arrow {
-	rotate: 0deg;
-	transition: transform 0.2s cubic-bezier(0.25, 0.46, 0.45, 0.94), rotate 0.2s cubic-bezier(0.25, 0.46, 0.45, 0.94), color 0.2s ease;
+	transform: translate(0, 0) rotate(0deg);
+	transition: transform 0.2s cubic-bezier(0.25, 0.46, 0.45, 0.94), color 0.2s ease;
 }
 
-/* 状态一：鼠标悬浮在母标签上时，箭头保留下沉偏位动效（指向下并下沉偏移） */
+/* 状态一：鼠标悬浮在母标签上时，恢复经典大幅度下沉偏位动效（指向下并下沉偏移 8.8px、向右微歪 2px） */
 .dropdown-container:hover .dropdown-arrow {
-	rotate: 180deg;
-	transform: translateY(-50%) rotate(180deg);
+	transform: translate(2px, 8.8px) rotate(0deg);
 }
 
-/* 状态二：鼠标移入弹出的下拉面板（或键盘Tab聚焦）时，箭头在母标签上翻转朝上指（^） */
+/* 状态二：鼠标移入弹出的下拉面板（或键盘Tab聚焦）时，恢复经典大幅度向上浮起（-8.8px）并翻转朝上指（^） */
 .dropdown-container.is-dropdown-open:not(:hover) .dropdown-arrow,
 .dropdown-container:focus-visible .dropdown-arrow {
-	rotate: 0deg;
-	transform: translateY(-50%) rotate(180deg);
+	transform: translate(0, -8.8px) rotate(180deg);
 }
 
 /* ── 共享下拉面板：整条导航只有一个，悬停跟随导航项左右滑动 ── */
