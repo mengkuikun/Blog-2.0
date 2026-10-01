@@ -178,11 +178,15 @@
 
 /* ── 右段：搜索按钮 + 快捷键徽章 ── */
 .navbar-seg--right .btn-plain {
+  color: var(--deep-text);
   background-color: transparent !important;
 }
 .navbar-seg--right .btn-plain::before {
   background-color: transparent !important;
   scale: 0.85;
+}
+.navbar-seg--right .btn-plain:hover {
+  color: var(--primary);
 }
 .navbar-seg--right .btn-plain:hover::before {
   background-color: transparent !important;
@@ -330,9 +334,19 @@
   opacity: 1;
 }
 
-/* 禁用各 item 自身的背景和 hover 背景 */
+/* 禁用各 item 自身的背景和 hover 背景，确保继承设计令牌文字色 */
 .navbar-nav .dropdown-container > a,
-.navbar-nav .dropdown-container > button,
+.navbar-nav .dropdown-container > button {
+  color: var(--deep-text);
+  background-color: transparent !important;
+  background: transparent !important;
+}
+
+.navbar-nav .dropdown-container > a:hover,
+.navbar-nav .dropdown-container > button:hover {
+  color: var(--primary);
+}
+
 .navbar-nav .dropdown-container > a::before,
 .navbar-nav .dropdown-container > button::before {
   background-color: transparent !important;

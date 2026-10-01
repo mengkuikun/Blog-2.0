@@ -27,8 +27,9 @@
   }
 
   .dropdown-item {
-    @apply flex items-center justify-between px-4 py-2.5 text-black/75 dark:text-white/75
+    @apply flex items-center justify-between px-4 py-2.5
       hover:text-(--primary) transition-colors duration-150 font-medium;
+    color: var(--deep-text);
     border: 1.5px solid transparent;
     border-radius: 0.5rem !important;
     margin: 0 0.375rem;

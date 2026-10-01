@@ -52,7 +52,17 @@ export function changelogEntriesFromCollection(
 	entries: CollectionEntry<"changelog">[],
 ): ChangelogEntry[] {
 	return entries
-		.sort((a, b) => b.data.date.getTime() - a.data.date.getTime())
+		.sort((a, b) => {
+			const diff = b.data.date.getTime() - a.data.date.getTime();
+			if (diff !== 0) return diff;
+			if (b.data.time && a.data.time) {
+				return b.data.time.localeCompare(a.data.time);
+			}
+			if (b.data.version && a.data.version) {
+				return b.data.version.localeCompare(a.data.version, undefined, { numeric: true });
+			}
+			return b.id.localeCompare(a.id);
+		})
 		.map((e) => {
 			const raw = e.body ?? "";
 			const detail = raw.trim();

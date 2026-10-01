@@ -7,12 +7,16 @@
       hover:bg-(--btn-card-bg-hover) active:bg-(--btn-card-bg-active);
   }
   .btn-card.disabled {
-    @apply pointer-events-none text-black/10 dark:text-white/10;
+    @apply pointer-events-none;
+    color: color-mix(in oklch, var(--deep-text) 15%, transparent);
   }
 
   .btn-plain {
-    @apply transition-colors duration-150 relative flex items-center justify-center bg-none
-      text-black/75 hover:text-(--primary) dark:text-white/75 dark:hover:text-(--primary);
+    @apply transition-colors duration-150 relative flex items-center justify-center bg-none;
+    color: var(--deep-text);
+    &:hover {
+      color: var(--primary);
+    }
     &:not(.scale-animation) {
       @apply hover:bg-(--btn-plain-bg-hover) active:bg-(--btn-plain-bg-active);
     }
@@ -22,31 +26,39 @@
   }
 
   .current-theme-btn {
-    @apply bg-(--btn-plain-bg-hover) text-(--primary);
+    @apply bg-(--btn-plain-bg-hover);
+    color: var(--primary);
   }
 
   .btn-regular {
     @apply transition-colors duration-150 flex items-center justify-center bg-(--btn-regular-bg)
       hover:bg-(--btn-regular-bg-hover) active:bg-(--btn-regular-bg-active)
-      text-(--btn-content) dark:text-white/75 border border-(--line-divider);
+      border border-(--line-divider);
+    color: var(--btn-content);
   }
 
   .btn-regular-dark {
     @apply flex items-center justify-center
-      bg-[oklch(0.45_0_0)] hover:bg-[oklch(0.50_0_0)] active:bg-[oklch(0.55_0_0)]
-      dark:bg-[oklch(0.30_0_0)] dark:hover:bg-[oklch(0.35_0_0)] dark:active:bg-[oklch(0.40_0_0)];
+      bg-[oklch(0.45_0_0)] hover:bg-[oklch(0.50_0_0)] active:bg-[oklch(0.55_0_0)];
+  }
+  :root.dark .btn-regular-dark {
+    @apply bg-[oklch(0.30_0_0)] hover:bg-[oklch(0.35_0_0)] active:bg-[oklch(0.40_0_0)];
   }
   .btn-regular-dark.success {
-    @apply bg-[oklch(0.75_0_0)] dark:bg-[oklch(0.75_0_0)];
+    @apply bg-[oklch(0.75_0_0)];
+  }
+  :root.dark .btn-regular-dark.success {
+    @apply bg-[oklch(0.75_0_0)];
   }
 
   /* CategoryBar 分类标签栏 - 描边按钮 */
   .btn-line {
     @apply transition-all duration-200 flex items-center justify-center bg-transparent border-2
-      border-(--line-divider) rounded-none text-black/75 hover:text-(--primary)
-      dark:text-white/75 dark:hover:text-(--primary);
+      border-(--line-divider) rounded-none;
+    color: var(--deep-text);
     &:hover {
       border-color: var(--primary);
+      color: var(--primary);
     }
   }
 }
