@@ -694,6 +694,7 @@ return controller;
 | 用文件 mtime 做集合排序/展示的兜底依据 | CI（EdgeOne/GitHub Actions）每次全新 clone，所有文件 mtime 都等于构建时刻、比任何业务日期都新——缺字段的旧条目会永远霸占"最新"区块（2026-09 友链页"新朋友"事故） | 排序只认 frontmatter 业务字段（如 friends 的 `added`）；字段缺失时构建期 `console.warn` 并让条目落到最后 |
 | 拿 Astro content 集合的 `item.id` 拼磁盘路径 / 匹配 public 静态文件 | id 是 github-slugger 规则（小写 + 移除标点、空格转连字符），与磁盘文件名不一致（`39-胡超，作品集.md` → id `39-胡超作品集`、`33-RAGNote.md` → `33-ragnote`），Linux CI 大小写敏感必失配 | 文件名 ↔ id 换算必须走同一 slug 规则（截图脚本 `scripts/友链截图/index.mjs` 已内置 github-slugger）；新增含大写/标点文件名的友链后核对 `public/assets/friends-shots/` 截图命名 |
 | 样式中直接使用 `var(--radius-large)` | 项目全局 `--radius-large: 0` 被置零，组件外层会直接变成无圆角尖角直角（2026-10 post-intro-card 教训） | 移植或新建组件时显式指定圆角（如 `1rem` 或 `0.75rem`），禁止直接裸用 `var(--radius-large)` |
+| 在 standalone CSS 文件中滥用 `@apply dark:...` 或硬编码 `#000/#fff` | Tailwind v4 在独立 CSS 中默认将 `dark:` 编译为 `@media (prefers-color-scheme: dark)`，导致用户系统为暗色时，在博客亮色模式下仍强行应用白色文字（白底白字看不清） | 颜色统一使用 `var(--deep-text)` / `var(--btn-content)` 等设计令牌，暗色覆盖统一使用 `:root.dark` 选择器，严禁使用 `@apply dark:...` |
 
 ---
 
