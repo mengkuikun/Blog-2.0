@@ -241,6 +241,18 @@ export function initNavbarDropdownDelegation(): void {
 		if (navContainer && !navContainer.contains(target)) {
 			closeNavbarDropdownPanel();
 		}
+
+		if (target?.closest(".dropdown-item")) {
+			closeNavbarDropdownPanel();
+			(document.activeElement as HTMLElement | null)?.blur?.();
+			return;
+		}
+
+		const trigger = target?.closest<HTMLElement>("[data-dropdown-trigger]");
+		if (trigger) {
+			// 鼠标点击触发按钮后主动脱焦，避免留存原生 :focus 导致箭头无法随鼠标离开复位
+			trigger.blur();
+		}
 	});
 
 	// Swup 导航 / 页面切换时重置并关闭

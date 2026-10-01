@@ -34,20 +34,34 @@
 	background-color: transparent !important;
 }
 
-/* 悬停高亮态：文字、图标、箭头反差变色 */
+/* 悬停与展开高亮态：文字、图标、箭头反差变色 */
 .navbar-nav .dropdown-container.is-highlighted > a,
-.navbar-nav .dropdown-container.is-highlighted > button {
+.navbar-nav .dropdown-container.is-highlighted > button,
+.navbar-nav .dropdown-container.is-dropdown-open > a,
+.navbar-nav .dropdown-container.is-dropdown-open > button {
 	color: var(--navbar-highlight-text) !important;
 }
 
-.navbar-nav .dropdown-container.is-highlighted .dropdown-arrow {
+.navbar-nav .dropdown-container.is-highlighted .dropdown-arrow,
+.navbar-nav .dropdown-container.is-dropdown-open .dropdown-arrow {
 	color: var(--navbar-highlight-text) !important;
 }
 
-/* 箭头旋转：悬停、聚焦或面板展开时向上翻转 */
-.dropdown-container:hover .dropdown-arrow,
-.dropdown-container:focus-within .dropdown-arrow,
-.dropdown-container.is-dropdown-open .dropdown-arrow {
+.dropdown-container .dropdown-arrow {
+	rotate: 0deg;
+	transition: transform 0.2s cubic-bezier(0.25, 0.46, 0.45, 0.94), rotate 0.2s cubic-bezier(0.25, 0.46, 0.45, 0.94), color 0.2s ease;
+}
+
+/* 状态一：鼠标悬浮在母标签上时，箭头保留下沉偏位动效（指向下并下沉偏移） */
+.dropdown-container:hover .dropdown-arrow {
+	rotate: 180deg;
+	transform: translateY(-50%) rotate(180deg);
+}
+
+/* 状态二：鼠标移入弹出的下拉面板（或键盘Tab聚焦）时，箭头在母标签上翻转朝上指（^） */
+.dropdown-container.is-dropdown-open:not(:hover) .dropdown-arrow,
+.dropdown-container:focus-visible .dropdown-arrow {
+	rotate: 0deg;
 	transform: translateY(-50%) rotate(180deg);
 }
 
