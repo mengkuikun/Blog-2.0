@@ -297,8 +297,9 @@
   height: 2.25rem;
   border-radius: 9999px;
   border: none;
-  background-color: color-mix(in oklch, var(--deep-text) 8%, transparent);
+  background-color: var(--navbar-highlight-bg);
   opacity: 0;
+  will-change: left, width;
   transition:
     left 0.25s cubic-bezier(0.25, 0.46, 0.45, 0.94),
     width 0.25s cubic-bezier(0.25, 0.46, 0.45, 0.94),
@@ -307,12 +308,21 @@
     opacity 0.25s cubic-bezier(0.25, 0.46, 0.45, 0.94),
     background-color 0.25s cubic-bezier(0.25, 0.46, 0.45, 0.94);
   pointer-events: none;
-  z-index: -1;
+  z-index: 0;
 }
 
-/* 选中态：更深一层背景 */
+/* 激活项/悬停项高亮 */
 .navbar-nav.nav-has-active .navbar-hover-highlight {
-  background-color: color-mix(in oklch, var(--deep-text) 12%, transparent);
+  background-color: var(--navbar-highlight-bg);
+}
+
+.navbar-nav .dropdown-container.is-highlighted > a,
+.navbar-nav .dropdown-container.is-highlighted > button {
+  color: var(--navbar-highlight-text) !important;
+}
+
+.navbar-nav .dropdown-container.is-highlighted .dropdown-arrow {
+  color: var(--navbar-highlight-text) !important;
 }
 
 .navbar-nav:hover .navbar-hover-highlight,

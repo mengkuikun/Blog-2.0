@@ -15,10 +15,6 @@
     @apply opacity-100 visible pointer-events-auto translate-y-0;
   }
 
-  .dropdown-container:hover .dropdown-arrow,
-  .dropdown-container:focus-within .dropdown-arrow {
-    @apply rotate-180;
-  }
 
   .dropdown-content,
   .dropdown-content-wrapper {

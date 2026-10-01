@@ -8,6 +8,7 @@ import { LinkPresets } from "@/constants/link-presets";
 import { LinkPreset, type NavBarLink } from "@/types/config";
 import { getFallbackFormat, getImageFormats } from "@/utils/image-utils";
 import { url } from "@/utils/url-utils";
+import DropdownItem from "@/components/common/DropdownItem.astro";
 import DropdownMenu from "./DropdownMenu.astro";
 
 const navbarTitle = siteConfig.navbar.title || siteConfig.title;
@@ -21,6 +22,22 @@ let links: NavBarLink[] = navBarConfig.links.map(
 		return item;
 	},
 );
+
+// 共享下拉面板的内容页：带子菜单的导航项各占一页，
+// 页序号与触发器容器上的 data-dropdown-index 配对
+interface NavbarDropdownPage {
+	index: number;
+	children: NavBarLink[];
+}
+
+const dropdownPages: NavbarDropdownPage[] = links
+	.map((link, index) => ({
+		index,
+		children: (link.children ?? [])
+			.map((child) => (typeof child === "number" ? LinkPresets[child] : child))
+			.filter((child): child is NavBarLink => child !== null),
+	}))
+	.filter((page) => page.children.length > 0);
 
 // Logo
 const logoValue = siteConfig.navbar.logo?.value || "";
@@ -81,7 +98,37 @@ if (isLocalSrcLogo) {
 		<div class="navbar-seg navbar-seg--center" data-navbar-nav>
 			<div class="navbar-nav hidden lg:flex items-center gap-0.5 relative">
 				<div class="navbar-hover-highlight" data-hover-border></div>
-				{links.map((l) => <DropdownMenu link={l} />)}
+				{links.map((l, i) => <DropdownMenu link={l} index={i} />)}
+
+				<!-- 共享下拉面板：悬停跟随导航项左右滑动，内容页交叉淡换 -->
+				{dropdownPages.length > 0 && (
+					<div class="navbar-dropdown-panel" data-navbar-dropdown-panel>
+						<span class="navbar-dropdown-arrow" aria-hidden="true"></span>
+						<div class="navbar-dropdown-box">
+							{dropdownPages.map((page) => (
+								<div class="navbar-dropdown-page" data-dropdown-page={page.index}>
+									{page.children.map((child, childIndex) => {
+										const isLast = childIndex === page.children.length - 1;
+										return (
+											<DropdownItem
+												href={child.external ? child.url : url(child.url)}
+												target={child.external ? "_blank" : undefined}
+												isLast={isLast}
+												class="dropdown-item"
+											>
+												{child.icon && <Icon name={child.icon} is:inline class="text-[1.2rem] mr-3 navbar-icon" />}
+												<span>{child.name}</span>
+												{child.external && (
+													<Icon name="fa7-solid:arrow-up-right-from-square" is:inline class="text-[0.7rem] text-black/25 dark:text-white/25 ml-auto" />
+												)}
+											</DropdownItem>
+										);
+									})}
+								</div>
+							))}
+						</div>
+					</div>
+				)}
 			</div>
 		</div>
 
@@ -98,10 +145,17 @@ if (isLocalSrcLogo) {
 	</div>
 </div>
 
-<script is:inline>
+<script>
+import {
+	initNavbarDropdownDelegation,
+	repositionNavbarDropdown,
+	syncNavbarDropdownOnHover,
+} from "@/utils/navbar-dropdown-controller";
+
 (function() {
-	var _hoverSliderAbortController = null;
-	var _hoverSliderMouseEnterHandlers = [];
+	var _hoverSliderAbortController: AbortController | null = null;
+	var _hoverSliderMouseEnterHandlers: Array<[Element, (e: Event) => void]> = [];
+	var _syncActiveItem: (() => void) | null = null;
 
 	function cleanupHoverSlider() {
 		if (_hoverSliderAbortController) {
@@ -112,20 +166,25 @@ if (isLocalSrcLogo) {
 			entry[0].removeEventListener('mouseenter', entry[1]);
 		});
 		_hoverSliderMouseEnterHandlers = [];
+		_syncActiveItem = null;
 	}
 
-	function normalizePath(p) {
+	function normalizePath(p: string): string {
 		return p.replace(/\/$/, '') || '/';
 	}
 
-	function pathMatches(currentPath, href) {
+	function pathMatches(currentPath: string, href: string): boolean {
 		var cp = normalizePath(currentPath);
 		var hp = normalizePath(href);
 		if (hp === '/') return cp === '/';
 		return cp === hp || cp.startsWith(hp + '/');
 	}
 
-	function moveHighlight(navContainer, hoverBorder, item) {
+	function moveHighlight(navContainer: HTMLElement, hoverBorder: HTMLElement, item: HTMLElement | null) {
+		navContainer.querySelectorAll<HTMLElement>(':scope > .dropdown-container').forEach(function(navItem) {
+			navItem.classList.toggle('is-highlighted', navItem === item);
+		});
+
 		if (!item) {
 			hoverBorder.style.opacity = '0';
 			return;
@@ -136,34 +195,51 @@ if (isLocalSrcLogo) {
 		hoverBorder.style.height = rect.height + 'px';
 		hoverBorder.style.left = (rect.left - containerRect.left) + 'px';
 		hoverBorder.style.top = (rect.top - containerRect.top) + 'px';
+		hoverBorder.style.opacity = '1';
 	}
 
 	function initHoverSlider() {
+		if (_syncActiveItem) {
+			_syncActiveItem();
+			return;
+		}
+
 		cleanupHoverSlider();
 
-		var navContainer = document.querySelector('[data-navbar-nav] .navbar-nav');
-		var hoverBorder = document.querySelector('[data-hover-border]');
+		const navContainer = document.querySelector<HTMLElement>('[data-navbar-nav] .navbar-nav');
+		const hoverBorder = document.querySelector<HTMLElement>('[data-hover-border]');
 		if (!navContainer || !hoverBorder) return;
 
+		const containerEl = navContainer;
+		const borderEl = hoverBorder;
+
 		_hoverSliderAbortController = new AbortController();
-		var navItems = Array.from(navContainer.querySelectorAll(':scope > .dropdown-container'));
+		var navItems = Array.from(containerEl.querySelectorAll<HTMLElement>(':scope > .dropdown-container'));
 
 		function detectActiveItem() {
 			var currentPath = window.location.pathname;
-			var activeItem = null;
+			var activeItem: HTMLElement | null = null;
 
 			navItems.forEach(function(item) {
 				item.classList.remove('nav-item-active');
-				var hrefs = [];
-				var selfLink = item.querySelector(':scope > a');
+				var hrefs: string[] = [];
+				var selfLink = item.querySelector<HTMLAnchorElement>(':scope > a');
 				if (selfLink) {
 					var href = selfLink.getAttribute('href');
 					if (href) hrefs.push(href);
 				}
-				item.querySelectorAll('.dropdown-item[href]').forEach(function(el) {
-					var href = el.getAttribute('href');
-					if (href) hrefs.push(href);
-				});
+
+				// 同时匹配共享面板中该导航项下的全部子菜单链接
+				var pageIndex = item.dataset.dropdownIndex;
+				var page = pageIndex !== undefined
+					? document.querySelector<HTMLElement>('[data-navbar-dropdown-panel] [data-dropdown-page="' + pageIndex + '"]')
+					: null;
+				if (page) {
+					page.querySelectorAll<HTMLAnchorElement>('.dropdown-item[href]').forEach(function(el) {
+						var href = el.getAttribute('href');
+						if (href) hrefs.push(href);
+					});
+				}
 
 				var matched = hrefs.some(function(href) { return pathMatches(currentPath, href); });
 				if (matched) {
@@ -173,33 +249,58 @@ if (isLocalSrcLogo) {
 			});
 
 			if (activeItem) {
-				navContainer.classList.add('nav-has-active');
-				requestAnimationFrame(function() {
-					moveHighlight(navContainer, hoverBorder, activeItem);
-				});
+				containerEl.classList.add('nav-has-active');
+				moveHighlight(containerEl, borderEl, activeItem);
 			} else {
-				navContainer.classList.remove('nav-has-active');
-				hoverBorder.style.opacity = '0';
+				containerEl.classList.remove('nav-has-active');
+				borderEl.style.opacity = '0';
 			}
 		}
 
+		_syncActiveItem = function() {
+			// 双 rAF 调度：避开 Swup 换页 DOM 灌入与组件挂载时的同步重排高峰，保证位移 60fps 丝滑
+			requestAnimationFrame(function() {
+				requestAnimationFrame(function() {
+					detectActiveItem();
+				});
+			});
+		};
+
 		navItems.forEach(function(item) {
-			var handler = function() { moveHighlight(navContainer, hoverBorder, item); };
+			var handler = function() {
+				moveHighlight(containerEl, borderEl, item);
+				syncNavbarDropdownOnHover(item);
+			};
 			item.addEventListener('mouseenter', handler);
 			_hoverSliderMouseEnterHandlers.push([item, handler]);
 		});
 
-		navContainer.addEventListener('mouseleave', function() {
-			var activeItem = navContainer.querySelector('.nav-item-active');
-			moveHighlight(navContainer, hoverBorder, activeItem);
+		containerEl.addEventListener('mouseleave', function() {
+			var activeItem = containerEl.querySelector<HTMLElement>('.nav-item-active');
+			moveHighlight(containerEl, borderEl, activeItem);
+			syncNavbarDropdownOnHover(null);
 		}, { signal: _hoverSliderAbortController.signal });
 
-		navContainer.addEventListener('mouseenter', function() {
-			hoverBorder.style.opacity = '1';
+		containerEl.addEventListener('mouseenter', function() {
+			borderEl.style.opacity = '1';
 		}, { signal: _hoverSliderAbortController.signal });
 
-		detectActiveItem();
-		document.addEventListener('astro:page-load', detectActiveItem, { signal: _hoverSliderAbortController.signal });
+		initNavbarDropdownDelegation();
+		window.addEventListener('resize', function() {
+			repositionNavbarDropdown();
+			var activeItem = containerEl.querySelector<HTMLElement>('.nav-item-active');
+			if (activeItem) {
+				moveHighlight(containerEl, borderEl, activeItem);
+			}
+		}, {
+			passive: true,
+			signal: _hoverSliderAbortController.signal,
+		});
+
+		// 首次加载立即定位
+		requestAnimationFrame(function() {
+			detectActiveItem();
+		});
 	}
 
 	initHoverSlider();
@@ -217,11 +318,11 @@ if (isLocalSrcLogo) {
 		var resizeTicking = false;
 
 		function updateCompactLayout() {
-			var segments = document.querySelector('.navbar-segments');
-			var center = document.querySelector('.navbar-seg--center');
-			var left = document.querySelector('.navbar-seg--left');
-			var right = document.querySelector('.navbar-seg--right');
-			if (!segments || !center || !left || !right) return;
+			var segments = document.querySelector<HTMLElement>('.navbar-segments');
+			var center = document.querySelector<HTMLElement>('.navbar-seg--center');
+			var left = document.querySelector<HTMLElement>('.navbar-seg--left');
+			var right = document.querySelector<HTMLElement>('.navbar-seg--right');
+			if (!segments || !center || !left || !right || !navbar) return;
 
 			var isScrolled = navbar.classList.contains('scrolled');
 			var isMobile = window.matchMedia('(max-width: 1023px)').matches;
@@ -262,6 +363,7 @@ if (isLocalSrcLogo) {
 		}
 
 		function handleScroll() {
+			if (!navbar) return;
 			var y = window.scrollY;
 			var wasScrolled = navbar.classList.contains('scrolled');
 
@@ -317,17 +419,19 @@ if (isLocalSrcLogo) {
 	});
 
 	// Search button click — 使用事件委托在 document 上，避免 Swup 重复绑定
-	if (!window.__navbarSearchBound) {
-		window.__navbarSearchBound = true;
+	const runtimeWin = window as unknown as { __navbarSearchBound?: boolean; __fireflySearchModalController?: { toggle: () => void }; __fireflySearchModalPendingToggle?: boolean };
+	if (!runtimeWin.__navbarSearchBound) {
+		runtimeWin.__navbarSearchBound = true;
 		document.addEventListener("click", function(e) {
-			var btn = e.target?.closest?.("#nav-search-btn");
+			var target = e.target as HTMLElement | null;
+			var btn = target?.closest?.("#nav-search-btn");
 			if (!btn) return;
 			e.stopPropagation();
 			// 触发搜索模态框
-			if (window.__fireflySearchModalController) {
-				window.__fireflySearchModalController.toggle();
+			if (runtimeWin.__fireflySearchModalController) {
+				runtimeWin.__fireflySearchModalController.toggle();
 			} else {
-				window.__fireflySearchModalPendingToggle = true;
+				runtimeWin.__fireflySearchModalPendingToggle = true;
 			}
 		});
 	}
