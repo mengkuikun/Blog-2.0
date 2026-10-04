@@ -696,6 +696,7 @@ return controller;
 | 拿 Astro content 集合的 `item.id` 拼磁盘路径 / 匹配 public 静态文件 | id 是 github-slugger 规则（小写 + 移除标点、空格转连字符），与磁盘文件名不一致（`39-胡超，作品集.md` → id `39-胡超作品集`、`33-RAGNote.md` → `33-ragnote`），Linux CI 大小写敏感必失配 | 文件名 ↔ id 换算必须走同一 slug 规则（截图脚本 `scripts/友链截图/index.mjs` 已内置 github-slugger）；新增含大写/标点文件名的友链后核对 `public/assets/friends-shots/` 截图命名 |
 | 样式中直接使用 `var(--radius-large)` | 项目全局 `--radius-large: 0` 被置零，组件外层会直接变成无圆角尖角直角（2026-10 post-intro-card 教训） | 移植或新建组件时显式指定圆角（如 `1rem` 或 `0.75rem`），禁止直接裸用 `var(--radius-large)` |
 | 在 standalone CSS 文件中滥用 `@apply dark:...` 或硬编码 `#000/#fff` | Tailwind v4 在独立 CSS 中默认将 `dark:` 编译为 `@media (prefers-color-scheme: dark)`，导致用户系统为暗色时，在博客亮色模式下仍强行应用白色文字（白底白字看不清） | 颜色统一使用 `var(--deep-text)` / `var(--btn-content)` 等设计令牌，暗色覆盖统一使用 `:root.dark` 选择器，严禁使用 `@apply dark:...` |
+| 在暗色模式下使用 `--primary` 作为背景时硬编码 `text-white`，或通过内联 `style="background-color: var(--primary)"` 绕过响应式暗色变体 | 本站 `:root.dark { --primary: oklch(0.98 0 0); }` 为高亮浅白天花板色，硬编码 `text-white` 直接导致"白底白字"不可见，且内联样式无法被 Tailwind `dark:` 覆写，深色遮罩下大白块极其突兀刺眼（2026-10 分享海报弹窗教训） | 统一使用 Tailwind 响应式类 `bg-(--primary) text-white dark:text-neutral-950 font-semibold`，暗色模式文字必须反相为深黑以维持高对比度，严禁内联写死色彩 |
 
 ---
 
