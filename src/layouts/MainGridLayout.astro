@@ -118,31 +118,7 @@ const staticBarClass = mainContentClass.replace("transition-main", "").trim();
 // grid-class-carrier 始终存储非首页的网格类，供 JS 恢复用
 const gridCols = baseGridCols;
 
-const footerClass = ["footer", "col-span-1", "onload-animation"];
-
-if (
-	updatedGridConfig.isBothSidebars &&
-	updatedGridConfig.hasLeftComponents &&
-	updatedGridConfig.hasRightComponents
-) {
-	// 双侧栏：平板端跨2列，桌面端在中间列
-	footerClass.push("md:col-span-2 xl:col-start-2 xl:col-span-1");
-} else if (
-	updatedGridConfig.hasLeftComponents &&
-	!updatedGridConfig.hasRightComponents
-) {
-	footerClass.push("md:col-span-2 xl:col-start-2 xl:col-span-1");
-} else if (
-	!updatedGridConfig.hasLeftComponents &&
-	updatedGridConfig.hasRightComponents
-) {
-	// 仅右侧栏：平板端跨2列，内容在第1列
-	footerClass.push("md:col-span-2 md:col-start-1 xl:col-start-1 xl:col-span-1");
-} else {
-	footerClass.push("xl:col-start-1 xl:col-span-1");
-}
-
-const footerClassName = footerClass.join(" ");
+const footerClassName = "footer onload-animation w-full";
 
 const navbarWidthFull = siteConfig.navbar.widthFull ?? false;
 
@@ -244,9 +220,11 @@ const navLinks = navBarConfig.links.map((item: NavBarLink | LinkPreset) => {
                 </div>
             )}
 
-            <div class={footerClassName}>
-                <Footer></Footer>
-            </div>
+        </div>
+
+        {/* 现代页脚：移出 main-grid 独立排版，避免被侧栏网格列宽限制，实现全宽舒展大气版心 */}
+        <div class={footerClassName}>
+            <Footer></Footer>
         </div>
 
         <SpineModel></SpineModel>

@@ -80,7 +80,7 @@ src/
 │       guestbook, life/notebooks, movies-games/, music, projects, search,
 │       sponsor, rss, robots.txt, og
 ├── plugins/             # 自定义 remark/rehype 插件 (10)
-├── styles/              # CSS 样式（76 个文件，含 navbar-profile-card、dropdown-menu、about 技术栈/时间线/更新日志图谱、equipment 卡片）
+├── styles/              # CSS 样式（77 个文件，含 footer-signature 现代页脚、navbar-profile-card、dropdown-menu、about 技术栈/时间线/更新日志图谱、equipment 卡片）
 │   ├── tokens/          # 设计令牌：colors, breakpoints, animation, z-index
 │   ├── base/            # reset, utilities
 │   ├── components/      # 组件样式
