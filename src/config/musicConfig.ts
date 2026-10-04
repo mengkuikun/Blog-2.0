@@ -13,12 +13,29 @@ export const musicPlayerConfig: MusicPlayerConfig = {
 		type: "song",
 		id: "30254265974",
 		auth: "",
-		fallbackApis: ["https://your-meting-api.example.com/api?server=:server&type=:type&id=:id"],
+		fallbackApis: [
+			"https://your-meting-api.example.com/api?server=:server&type=:type&id=:id",
+		],
 	},
 
-	// 本地播放列表为空 — 音乐数据全部从 bangumi content collection 加载
+	// 本地播放列表
 	local: {
-		playlist: [],
+		playlist: [
+			{
+				name: "海屿你",
+				artist: "马也_Crabbit",
+				url: "/assets/music/hai-yu-ni.mp3",
+				cover: "/assets/music/hai-yu-ni.jpg",
+				lrc: "/assets/music/hai-yu-ni.lrc",
+			},
+			{
+				name: "暮色回响",
+				artist: "张韶涵",
+				url: "/assets/music/mu-se-hui-xiang.mp3",
+				cover: "/assets/music/mu-se-hui-xiang.jpg",
+				lrc: "/assets/music/mu-se-hui-xiang.lrc",
+			},
+		],
 	},
 
 	// 3D 可视化器配置

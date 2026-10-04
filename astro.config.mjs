@@ -289,13 +289,36 @@ export default defineConfig({
 		}),
 	},
 	vite: {
-		plugins: [tailwindcss()],
-		// 忽略 Windows 系统卷（如 F:\System Volume Information）。
-		// 注意：函数过滤在 chokidar readdirp 的 lstat 之后才生效，挡不住 EINVAL，
-		// 必须用正则，让 chokidar 在遍历目录时就跳过它
+		plugins: [
+			tailwindcss(),
+			{
+				name: "vite-plugin-suppress-system-volume-watcher-error",
+				configureServer(server) {
+					// 监听并拦截 Windows 盘符根目录下受保护系统文件夹（如 F:\System Volume Information）
+					// 抛出的 EINVAL 错误，防止 FSWatcher 触发 Unhandled 'error' 事件导致 dev 进程崩溃
+					server.watcher.on("error", (err) => {
+						if (
+							err &&
+							(err.code === "EINVAL" ||
+								err.code === "EPERM" ||
+								String(err.message).includes("System Volume Information"))
+						) {
+							return;
+						}
+						console.error("[vite watcher error]", err);
+					});
+				},
+			},
+		],
+		// 忽略 Windows 系统卷（如 F:\System Volume Information）与 .git 目录
 		server: {
 			watch: {
-				ignored: [/System Volume Information/],
+				ignored: [
+					"**/System Volume Information/**",
+					"**/.git/**",
+					/System Volume Information/,
+					/\.git/,
+				],
 			},
 		},
 		define: {},
@@ -345,5 +368,6 @@ export default defineConfig({
 			// 并行处理构建
 			workers: 4,
 		},
+
 	},
 });

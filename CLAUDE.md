@@ -80,7 +80,7 @@ src/
 │       guestbook, life/notebooks, movies-games/, music, projects, search,
 │       sponsor, rss, robots.txt, og
 ├── plugins/             # 自定义 remark/rehype 插件 (10)
-├── styles/              # CSS 样式（76 个文件，含 navbar-profile-card、dropdown-menu、about 技术栈/时间线/更新日志图谱、equipment 卡片）
+├── styles/              # CSS 样式（77 个文件，含 footer-signature 现代页脚、navbar-profile-card、dropdown-menu、about 技术栈/时间线/更新日志图谱、equipment 卡片）
 │   ├── tokens/          # 设计令牌：colors, breakpoints, animation, z-index
 │   ├── base/            # reset, utilities
 │   ├── components/      # 组件样式
@@ -201,7 +201,7 @@ Layout.astro          ← HTML 骨架：<html>, <head>, <body>, 全局组件, �
 | changelog | 更新日志 |
 | equipment | 我的设备（2026-09-27 新增：文件夹即分组，schema 含 name/spec/description/image/url/urlLabel/weight/enabled） |
 
-> 友链页支撑系统（2026-08）：`.github/workflows/friend-status.yml`（每天 5:17 检测友链延迟 → public/friends-status.json，四档 fast/ok/slow/down）与 `friend-screenshots.yml`（每周日 3:23 全量补漏 + push main 变更 `src/content/friends/**` 时自动触发，Playwright 截图 → public/assets/friends-shots/{contentId}.webp，伪装真实浏览器 + load 后等字体就绪、网络空闲（6s 超时兜底）与 2s 缓冲，失败 3 次尝试）。前端 fetch 状态 JSON 注入徽标，无 JSON/无截图时优雅降级（卡片退化为纯头像卡）。改 friends 集合结构时注意同步这两个脚本（正则读 frontmatter）。**截图文件名必须是全小写**（Astro glob loader 的 entry id 为全小写 slug，脚本已按 `md 文件名.toLowerCase()` 输出；含大写的 webp 在 Windows dev 误判存在导致 404，线上 Linux 则直接退化）。
+> 友链页支撑系统（2026-08）：`.github/workflows/friend-status.yml`（每天 5:17 检测友链延迟 → public/friends-status.json，四档 fast/ok/slow/down）与 `friend-screenshots.yml`（每周日 3:23 全量补漏 + push main 变更 `src/content/friends/**` 时自动触发，Playwright 截图 → public/assets/friends-shots/{contentId}.webp，伪装真实浏览器 + load 后等字体就绪、网络空闲（6s 超时兜底）与 2s 缓冲，失败 3 次尝试）。前端 fetch 状态 JSON 注入徽标，无 JSON/无截图时优雅降级（卡片退化为纯头像卡）。改 friends 集合结构时注意同步这两个脚本（正则读 frontmatter）。**截图文件名必须是全小写**（Astro glob loader 的 entry id 为全小写 slug，脚本已按 `md 文件名.toLowerCase()` 输出；含大写的 webp 在 Windows dev 误判存在导致 404，线上 Linux 则直接退化）。桌面端悬浮大图预览（2026-10 移植自 MmzMing 知识库同款设计）：相框内衬布局（`padding: 0.5rem`）+ `var(--deep-text)` 自适应边框与内外同心圆角（16px/8px）+ 光标偏移跟随与智能视口碰撞避界（右侧/底部翻转贴靠），Portal 单例挂载于 `src/pages/friends.astro`，样式位于 `src/styles/components/friend-preview.css`。
 
 > ⚠️ **朋友圈数据链路（强制提醒义务）**：友链朋友圈页（`/circle/`）的数据来自 `cir.imki.cn/data.json`，由独立仓库（GitHub: mengkuikun/hexo-circle-of-friends）定时生成并通过 EdgeOne Pages 静态托管。该程序的 firefly 主题解析器**依赖本博客友链页卡片结构**（`css_rules.yaml`）：名字=[`.friend-card`]`data-title`、链接=[`.friend-card`]`data-siteurl`、头像=[`.friend-card-avatar__img`]`data-src`。**凡是修改友链页卡片 HTML/friends 集合字段/友链 Card 组件结构，必须同步检查并提醒站长**：一是确认 `css_rules.yaml` 的 firefly 选择器仍匹配新结构（必要时同步修改并推送到 hexo-circle-of-friends 仓库）；二是验证「data.json 的 last_updated_time 与文章数」确实更新（抓一次页面或等下一轮 Action）。2026-08 曾因友链卡 class 从 `.friend-card-name/.friend-card-link` 改为 data 属性导致朋友圈停更 6 天，务必引以为戒。
 
@@ -407,6 +407,7 @@ import { i18n } from "@/i18n/translation";
 | `setInterval` | cleanup 中 `clearInterval` |
 | `requestAnimationFrame` 循环 | cleanup 中 `cancelAnimationFrame` |
 | `MutationObserver` / `ResizeObserver` | cleanup 中 `disconnect()` |
+| 挂载到 `document.body` 的 Portal 浮层 DOM | 导航离场（`swup:visit:start`）中调用 `el.remove()` 物理移除并 `abort` 监听器，防止切页后孤儿节点残留游荡（2026-10 友链大图教训） |
 
 ### 8.2 AbortController 模式
 
@@ -695,6 +696,7 @@ return controller;
 | 拿 Astro content 集合的 `item.id` 拼磁盘路径 / 匹配 public 静态文件 | id 是 github-slugger 规则（小写 + 移除标点、空格转连字符），与磁盘文件名不一致（`39-胡超，作品集.md` → id `39-胡超作品集`、`33-RAGNote.md` → `33-ragnote`），Linux CI 大小写敏感必失配 | 文件名 ↔ id 换算必须走同一 slug 规则（截图脚本 `scripts/友链截图/index.mjs` 已内置 github-slugger）；新增含大写/标点文件名的友链后核对 `public/assets/friends-shots/` 截图命名 |
 | 样式中直接使用 `var(--radius-large)` | 项目全局 `--radius-large: 0` 被置零，组件外层会直接变成无圆角尖角直角（2026-10 post-intro-card 教训） | 移植或新建组件时显式指定圆角（如 `1rem` 或 `0.75rem`），禁止直接裸用 `var(--radius-large)` |
 | 在 standalone CSS 文件中滥用 `@apply dark:...` 或硬编码 `#000/#fff` | Tailwind v4 在独立 CSS 中默认将 `dark:` 编译为 `@media (prefers-color-scheme: dark)`，导致用户系统为暗色时，在博客亮色模式下仍强行应用白色文字（白底白字看不清） | 颜色统一使用 `var(--deep-text)` / `var(--btn-content)` 等设计令牌，暗色覆盖统一使用 `:root.dark` 选择器，严禁使用 `@apply dark:...` |
+| 在暗色模式下使用 `--primary` 作为背景时硬编码 `text-white`，或通过内联 `style="background-color: var(--primary)"` 绕过响应式暗色变体 | 本站 `:root.dark { --primary: oklch(0.98 0 0); }` 为高亮浅白天花板色，硬编码 `text-white` 直接导致"白底白字"不可见，且内联样式无法被 Tailwind `dark:` 覆写，深色遮罩下大白块极其突兀刺眼（2026-10 分享海报弹窗教训） | 统一使用 Tailwind 响应式类 `bg-(--primary) text-white dark:text-neutral-950 font-semibold`，暗色模式文字必须反相为深黑以维持高对比度，严禁内联写死色彩 |
 
 ---
 

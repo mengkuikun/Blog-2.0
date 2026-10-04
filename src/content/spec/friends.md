@@ -12,8 +12,8 @@ description: "与优秀的朋友们一起成长"
 ```yaml
 站点名称: 夢酷
 站点描述: Crafting Dreams In Code.
-站点链接: https://example.com
-头像链接: /avatar.jpg
+站点链接: https://imki.cn
+头像链接: https://imki.cn/avatar.jpg
 
 ```
 

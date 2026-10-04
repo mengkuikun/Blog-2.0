@@ -192,6 +192,8 @@ const articleListPosts = await Promise.all(
 				url: getTagUrl(tag),
 			}));
 
+		const wordCount = Number(remarkPluginFrontmatter.words) || 0;
+		const categoryHue = getCategoryHue(category);
 		const hasRealCover = !!entry.data.image;
 
 		return {
@@ -209,6 +211,10 @@ const articleListPosts = await Promise.all(
 				"暂无文章简介，点击卡片查看完整内容。",
 			imageUrl: articleImage.imageUrl,
 			imageApiUrls: articleImage.imageApiUrls,
+			apiUrls: articleImage.imageApiUrls,
+			fallbackImageUrl,
+			categoryHue,
+			wordCount,
 			pinned: !!entry.data.pinned,
 			hasRealCover,
 		};

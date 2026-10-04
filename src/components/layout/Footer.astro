@@ -1,12 +1,34 @@
 ---
+import { getCollection } from "astro:content";
 import fs from "node:fs";
 import path from "node:path";
-import { footerConfig, profileConfig } from "@/config";
-import { url } from "@/utils/url-utils";
+import { Icon } from "astro-icon/components";
+import { footerConfig, profileConfig, siteConfig } from "@/config";
+
+// 规范与版权提示：
+// 注意：请勿随意修改或删除 "Powered by Astro & Firefly" 部分，这是对开源项目的尊重和支持。
+// 如果您需要在底部增加额外自定义内容，请在 src/config/footerConfig.ts 中修改 enable 属性为 true，
+// 然后编辑 src/config/FooterConfig.html 文件。
 
 const currentYear = new Date().getFullYear();
+const siteStartDate = siteConfig.siteStartDate || "2026-09-27";
 
-// 读取FooterConfig.html文件内容
+// 计算最新活动/更新日期（文章、动态等）
+const posts = await getCollection("posts");
+const moments = await getCollection("moments");
+
+let latestDate = new Date(siteStartDate);
+for (const p of posts) {
+	const d = p.data.published;
+	if (d && new Date(d) > latestDate) latestDate = new Date(d);
+}
+for (const m of moments) {
+	const d = m.data.published;
+	if (d && new Date(d) > latestDate) latestDate = new Date(d);
+}
+const latestIsoString = latestDate.toISOString();
+
+// 读取 FooterConfig.html 自定义内容
 let customFooterHtml = "";
 if (footerConfig.enable) {
 	try {
@@ -17,32 +39,224 @@ if (footerConfig.enable) {
 			"FooterConfig.html",
 		);
 		customFooterHtml = fs.readFileSync(footerConfigPath, "utf-8");
-		// 移除HTML注释
 		customFooterHtml = customFooterHtml.replace(/<!--[\s\S]*?-->/g, "").trim();
 	} catch (error) {
-		console.warn("FooterConfig.html文件读取失败:", error.message);
+		console.warn("FooterConfig.html文件读取失败:", (error as Error).message);
 	}
 }
+
+// 社交链接列表
+const socialLinks = profileConfig.links || [];
 ---
 
+<footer class="site-footer select-none" data-site-footer>
+  <div class="site-footer__inner">
 
-<div
-  class="transition border-t border-black/10 dark:border-white/15 mt-2 mb-6 border-dashed mx-32"
->
-</div>
+    <!-- 上层主区域 (Primary) - Grid 布局 -->
+    <div class="site-footer__primary" data-footer-signature-container>
+      
+      <!-- 左侧：MengKu 手写艺术签名与专属座右铭 -->
+      <section class="site-footer__brand" aria-label={profileConfig.displayName || "MengKu"}>
+        <div class="site-footer__brand-copy">
+          <svg
+            class="site-footer__signature-art"
+            viewBox="0 0 380 120"
+            fill="none"
+            role="img"
+            aria-label={profileConfig.displayName || "MengKu"}
+          >
+            <title>{profileConfig.displayName || "MengKu"}</title>
+            <defs>
+              <mask id="footer-signature-mask">
+                <path
+                  class="footer-signature-mask"
+                  d="M 20 85 C 22 85, 26 54, 32 44 C 36 36, 44 44, 46 64 C 50 48, 58 40, 65 47 C 72 55, 73 74, 78 82 C 83 87, 88 77, 92 68 C 97 58, 107 59, 108 67 C 109 76, 96 79, 93 81 C 102 85, 114 85, 122 75 C 126 70, 131 63, 137 63 C 143 63, 143 74, 147 81 C 151 86, 157 78, 161 68 C 166 58, 175 57, 180 63 C 185 69, 182 82, 175 85 C 166 88, 158 80, 159 72 C 160 62, 172 58, 181 64 C 187 69, 188 80, 186 90 C 183 104, 171 114, 161 108 C 151 102, 158 88, 172 82 C 186 76, 204 70, 222 55 C 228 32, 230 22, 234 22 C 236 22, 235 48, 234 82 M 230 58 C 238 52, 246 44, 254 44 C 259 44, 256 54, 248 62 C 243 67, 249 72, 256 78 C 263 84, 271 84, 278 78 C 283 72, 285 64, 289 64 C 293 64, 294 74, 297 80 C 300 85, 305 85, 310 81 C 316 75, 318 64, 323 64 C 328 64, 329 74, 332 80 C 336 84, 344 83, 355 74 C 362 68, 368 60, 374 52"
+                  pathLength="1"
+                  stroke="white"
+                  stroke-width="22"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                />
+              </mask>
+            </defs>
+            <path
+              class="footer-signature-ink"
+              d="M 20 85 C 22 85, 26 54, 32 44 C 36 36, 44 44, 46 64 C 50 48, 58 40, 65 47 C 72 55, 73 74, 78 82 C 83 87, 88 77, 92 68 C 97 58, 107 59, 108 67 C 109 76, 96 79, 93 81 C 102 85, 114 85, 122 75 C 126 70, 131 63, 137 63 C 143 63, 143 74, 147 81 C 151 86, 157 78, 161 68 C 166 58, 175 57, 180 63 C 185 69, 182 82, 175 85 C 166 88, 158 80, 159 72 C 160 62, 172 58, 181 64 C 187 69, 188 80, 186 90 C 183 104, 171 114, 161 108 C 151 102, 158 88, 172 82 C 186 76, 204 70, 222 55 C 228 32, 230 22, 234 22 C 236 22, 235 48, 234 82 M 230 58 C 238 52, 246 44, 254 44 C 259 44, 256 54, 248 62 C 243 67, 249 72, 256 78 C 263 84, 271 84, 278 78 C 283 72, 285 64, 289 64 C 293 64, 294 74, 297 80 C 300 85, 305 85, 310 81 C 316 75, 318 64, 323 64 C 328 64, 329 74, 332 80 C 336 84, 344 83, 355 74 C 362 68, 368 60, 374 52"
+              mask="url(#footer-signature-mask)"
+              stroke="currentColor"
+              stroke-width="7"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            />
+          </svg>
+          <p class="site-footer__tagline">
+            {profileConfig.bio?.[0] || "Crafting Dreams In Code."}
+          </p>
+        </div>
+      </section>
 
-<div
-  class="transition border-dashed border-[oklch(85%_0_0)] dark:border-white/15 rounded-2xl mb-12 flex flex-col items-center justify-center px-6"
->
-  <div class="transition text-50 text-sm text-center">
-    <div class="mb-2">
-      {customFooterHtml && <div set:html={customFooterHtml} />}
+      <!-- 右侧：常用联系方式与实用链接 -->
+      <nav class="site-footer__contact" aria-label="常用联系方式">
+        <p class="site-footer__eyebrow">
+          常用联系方式
+        </p>
+        <ul class="site-footer__social-list" role="list">
+          {socialLinks.map((item) => (
+            <li>
+              <a
+                class="site-footer__social-link"
+                href={item.url}
+                target="_blank"
+                rel="noreferrer"
+                aria-label={item.name}
+                data-tooltip={item.name}
+              >
+                <Icon name={item.icon} class="text-xl" />
+              </a>
+            </li>
+          ))}
+        </ul>
+        <div class="site-footer__utility-links">
+          <a href="/sitemap-index.xml" target="_blank" rel="noreferrer">Sitemap</a>
+          <span aria-hidden="true" class="opacity-35 mx-0.5">/</span>
+          <a href="/rss/" target="_blank" rel="noreferrer">RSS</a>
+          <span aria-hidden="true" class="opacity-35 mx-0.5">/</span>
+          <a href="/sponsor/">赞助支持</a>
+          <span aria-hidden="true" class="opacity-35 mx-0.5">/</span>
+          <a href="/changelog/">更新日志</a>
+        </div>
+      </nav>
     </div>
 
-    <!-- 
-      注意：请勿随意修改或删除 "Powered by Astro & Firefly" 部分，这是对开源项目的尊重和支持。
-      如果您需要在底部增加内容，请在src/config/footerConfig.ts中修改enable属性为true，然后编辑src/config/FooterConfig.html文件。
-      您可以随意在src/config/FooterConfig.html中随意添加自定义内容，不需要修改Footer.astro文件。
-    -->
+    <!-- 下层区域 (Lower) - Grid 布局 -->
+    <div class="site-footer__lower">
+      
+      <!-- 左侧：版权、框架/主题致敬、备案 -->
+      <div class="site-footer__legal">
+        <div class="site-footer__copyright-row">
+          <p class="site-footer__copyright">
+            &copy; {currentYear} {profileConfig.displayName || "MengKu"}
+          </p>
+          <span class="site-footer__copyright-divider" aria-hidden="true">·</span>
+          <span class="site-footer__powered-by">
+            <span>框架</span>
+            <a href="https://astro.build" target="_blank" rel="noreferrer">Astro</a>
+          </span>
+          <span class="site-footer__copyright-divider" aria-hidden="true">·</span>
+          <span class="site-footer__powered-by">
+            <span>主题</span>
+            <a href="https://github.com/CuteLeaf/Firefly" target="_blank" rel="noreferrer">Firefly</a>
+          </span>
+        </div>
+
+        <div class="site-footer__beian">
+          <a href="https://beian.miit.gov.cn" target="_blank" rel="noopener nofollow">
+            闽ICP备2026038345号-1
+          </a>
+        </div>
+
+        {customFooterHtml && (
+          <div class="site-footer__custom-html" set:html={customFooterHtml} />
+        )}
+      </div>
+
+      <!-- 右侧：运行时间与最后更新状态 (对标 MmzMing 15px) -->
+      <div class="site-footer__status">
+        <p class="site-footer__status-line">
+          <Icon name="material-symbols:calendar-clock-outline" class="text-base" />
+          <span data-footer-running-time data-start-date={siteStartDate}>
+            本站已苟活 <span class="font-mono tabular-nums font-semibold text-neutral-800 dark:text-neutral-200">0</span> 天
+          </span>
+        </p>
+        <p class="site-footer__status-line">
+          <Icon name="material-symbols:monitoring" class="text-base" />
+          <span data-footer-last-update data-latest-date={latestIsoString}>
+            最后更新于 <span class="font-mono tabular-nums font-semibold text-neutral-800 dark:text-neutral-200">0</span> 天前
+          </span>
+        </p>
+      </div>
+    </div>
   </div>
-</div>
+</footer>
+
+<script is:inline>
+  (function() {
+    function initFooterSignature() {
+      var container = document.querySelector("[data-footer-signature-container]");
+      if (!container) return;
+      if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+        container.classList.add("is-signature-drawn");
+        return;
+      }
+      if (!("IntersectionObserver" in window)) {
+        container.classList.add("is-signature-drawn");
+        return;
+      }
+      var observer = new IntersectionObserver(function(entries) {
+        if (entries.some(function(entry) { return entry.isIntersecting; })) {
+          container.classList.add("is-signature-drawn");
+          observer.disconnect();
+        }
+      }, { threshold: 0.25 });
+      observer.observe(container);
+    }
+
+    function initFooterStatus() {
+      if (window.__footerRunningTimer) {
+        clearInterval(window.__footerRunningTimer);
+        window.__footerRunningTimer = null;
+      }
+
+      var runningEl = document.querySelector("[data-footer-running-time]");
+      var updateEl = document.querySelector("[data-footer-last-update]");
+
+      if (runningEl) {
+        var startStr = runningEl.getAttribute("data-start-date") || "2026-09-27";
+        var startDate = new Date(startStr);
+
+        function updateRunning() {
+          var now = new Date();
+          var diff = Math.max(0, now.getTime() - startDate.getTime());
+          var days = Math.floor(diff / (1000 * 60 * 60 * 24));
+          var hours = Math.floor((diff / (1000 * 60 * 60)) % 24);
+          var minutes = Math.floor((diff / (1000 * 60)) % 60);
+          var seconds = Math.floor((diff / 1000) % 60);
+
+          runningEl.innerHTML = '本站已苟活 <span class="font-mono tabular-nums font-semibold text-neutral-800 dark:text-neutral-200">' + days + '</span> 天 ' +
+            '<span class="font-mono tabular-nums font-semibold text-neutral-800 dark:text-neutral-200">' + hours + '</span> 时 ' +
+            '<span class="font-mono tabular-nums font-semibold text-neutral-800 dark:text-neutral-200">' + minutes + '</span> 分 ' +
+            '<span class="font-mono tabular-nums font-semibold text-neutral-800 dark:text-neutral-200">' + seconds + '</span> 秒';
+        }
+
+        updateRunning();
+        window.__footerRunningTimer = setInterval(updateRunning, 1000);
+      }
+
+      if (updateEl) {
+        var latestStr = updateEl.getAttribute("data-latest-date");
+        if (latestStr) {
+          var latestDate = new Date(latestStr);
+          var now = new Date();
+          var diffDays = Math.floor((now.getTime() - latestDate.getTime()) / (1000 * 60 * 60 * 24));
+          if (diffDays <= 0) {
+            updateEl.innerHTML = '最后更新于 <span class="font-mono tabular-nums font-semibold text-neutral-800 dark:text-neutral-200">今天</span>';
+          } else {
+            updateEl.innerHTML = '最后更新于 <span class="font-mono tabular-nums font-semibold text-neutral-800 dark:text-neutral-200">' + diffDays + '</span> 天前';
+          }
+        }
+      }
+    }
+
+    function initAll() {
+      initFooterSignature();
+      initFooterStatus();
+    }
+
+    if (!window.__footerHooked) {
+      window.__footerHooked = true;
+      document.addEventListener("swup:content:replaced", initAll);
+      document.addEventListener("astro:page-load", initAll);
+    }
+    initAll();
+  })();
+</script>
