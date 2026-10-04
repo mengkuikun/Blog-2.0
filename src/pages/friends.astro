@@ -3,10 +3,10 @@ import { getCollection, getEntry, render } from "astro:content";
 import fs from "node:fs";
 import path from "node:path";
 import { domainToUnicode } from "node:url";
-import { removeFileExtension } from "@utils/url-utils";
 import Comment from "@components/comment/index.astro";
 import Markdown from "@components/common/Markdown.astro";
 import FriendCard from "@components/features/FriendCard.astro";
+import { removeFileExtension } from "@utils/url-utils";
 import { Icon } from "astro-icon/components";
 import I18nKey from "@/i18n/i18nKey";
 import { i18n } from "@/i18n/translation";
@@ -244,14 +244,12 @@ const description = i18n(I18nKey.friendsDescription);
   <!-- 友链悬浮大图预览 — portal 单例，光标跟随与视口边缘自适应（仅桌面 hover） -->
   <script is:inline>
     (function() {
-      if (window.__friendPreviewReady) return;
-      window.__friendPreviewReady = true;
-
       var OFFSET = 16;
       var PADDING = 8;
       var hideTimer = null;
       var lastMouseX = 0;
       var lastMouseY = 0;
+      var abortCtrl = null;
 
       function canHover() {
         return window.matchMedia("(hover: hover) and (pointer: fine)").matches;
@@ -345,15 +343,39 @@ const description = i18n(I18nKey.friendsDescription);
         }, 200);
       }
 
-      function bindEvents() {
+      function destroyPreview() {
+        if (abortCtrl) {
+          abortCtrl.abort();
+          abortCtrl = null;
+        }
+        if (hideTimer) {
+          clearTimeout(hideTimer);
+          hideTimer = null;
+        }
+        var el = getPreview();
+        if (el) {
+          el.remove();
+        }
+      }
+
+      function initPreview() {
+        // 环境守卫：若当前页面无友链网格，立即清除残留并退出
+        if (!document.querySelector("[data-friends-grid]")) {
+          destroyPreview();
+          return;
+        }
         if (!canHover()) return;
-        ensurePreview();
+
+        // 重新初始化前先彻底清理旧状态
+        destroyPreview();
+        abortCtrl = new AbortController();
+        var signal = abortCtrl.signal;
 
         document.addEventListener("mouseover", function(e) {
           var card = e.target && e.target.closest ? e.target.closest(".friend-card[data-screenshot]") : null;
           if (!card || card.classList.contains("friend-card--no-shot")) return;
           showPreview(card, e.clientX, e.clientY);
-        });
+        }, { signal: signal });
 
         document.addEventListener("mouseout", function(e) {
           var card = e.target && e.target.closest ? e.target.closest(".friend-card[data-screenshot]") : null;
@@ -362,22 +384,39 @@ const description = i18n(I18nKey.friendsDescription);
           if (nextCard === card) return;
           if (nextCard && !nextCard.classList.contains("friend-card--no-shot")) return;
           hidePreview();
-        });
+        }, { signal: signal });
 
         document.addEventListener("mousemove", function(e) {
           var el = getPreview();
-          if (el && el.classList.contains("is-visible")) {
-            lastMouseX = e.clientX;
-            lastMouseY = e.clientY;
-            updatePosition(e.clientX, e.clientY);
+          if (!el || !el.classList.contains("is-visible")) return;
+          // 防御兜底：如果卡片已不在当前 DOM 中，立即销毁退出
+          if (!document.querySelector(".friend-card")) {
+            destroyPreview();
+            return;
           }
-        });
+          lastMouseX = e.clientX;
+          lastMouseY = e.clientY;
+          updatePosition(e.clientX, e.clientY);
+        }, { signal: signal });
 
-        window.addEventListener("scroll", hidePreview, { passive: true });
-        document.addEventListener("swup:willReplaceContent", hidePreview);
+        window.addEventListener("scroll", hidePreview, { signal: signal, passive: true });
       }
 
-      bindEvents();
+      // 全局 Swup / Astro 页面生命周期监听（单例守卫防重复注册）
+      if (!window.__friendPreviewHooked) {
+        window.__friendPreviewHooked = true;
+        // 离开页面瞬间彻底移除浮层并 abort 监听器
+        document.addEventListener("swup:visit:start", destroyPreview);
+        document.addEventListener("swup:willReplaceContent", destroyPreview);
+        document.addEventListener("astro:before-swap", destroyPreview);
+
+        // 进入页面时自注册判断并初始化
+        document.addEventListener("swup:content:replaced", initPreview);
+        document.addEventListener("astro:page-load", initPreview);
+      }
+
+      // 首次加载立即执行
+      initPreview();
     })();
   </script>
 

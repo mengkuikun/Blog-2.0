@@ -407,6 +407,7 @@ import { i18n } from "@/i18n/translation";
 | `setInterval` | cleanup 中 `clearInterval` |
 | `requestAnimationFrame` 循环 | cleanup 中 `cancelAnimationFrame` |
 | `MutationObserver` / `ResizeObserver` | cleanup 中 `disconnect()` |
+| 挂载到 `document.body` 的 Portal 浮层 DOM | 导航离场（`swup:visit:start`）中调用 `el.remove()` 物理移除并 `abort` 监听器，防止切页后孤儿节点残留游荡（2026-10 友链大图教训） |
 
 ### 8.2 AbortController 模式
 
