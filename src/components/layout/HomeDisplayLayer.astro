@@ -346,28 +346,19 @@ async function hydrateLazyImages(root: HTMLElement) {
 	});
 }
 
-	function ensureNoContentWrapperContainingBlock(): Promise<void> {
-		return new Promise((resolve) => {
-			const wrapper = document.getElementById("content-wrapper");
-			if (!wrapper) return resolve();
-
-			if (!wrapper.classList.contains("onload-animation")) {
-				wrapper.style.removeProperty("transform");
-				return resolve();
-			}
-
-			let resolved = false;
-			const done = () => {
-				if (resolved) return;
-				resolved = true;
-				wrapper.classList.remove("onload-animation");
-				wrapper.style.removeProperty("transform");
-				resolve();
-			};
-
-			wrapper.addEventListener("animationend", done, { once: true });
-			setTimeout(done, 1200);
-		});
+	/**
+	 * 清掉 #content-wrapper 上的 transform。
+	 * 带 transform 的祖先会把 fixed 定位的参照从视口换成它自己，而首页显示层
+	 * 依赖 fixed / pin 定位，所以必须先清掉。
+	 *
+	 * 直接同步清、不等动画：.onload-animation 在 swup.css 中已无动画位移，
+	 * 等它的 animationend 永远不会来，避免死等 1200ms 超时兜底导致首页白屏卡顿。
+	 */
+	function releaseContentWrapperTransform(): void {
+		const wrapper = document.getElementById("content-wrapper");
+		if (!wrapper) return;
+		wrapper.classList.remove("onload-animation");
+		wrapper.style.removeProperty("transform");
 	}
 
 	function teardownDisplay() {
@@ -423,14 +414,10 @@ async function hydrateLazyImages(root: HTMLElement) {
 
 		root.dataset.displayReady = "loading";
 
-	// 并行：等待 content-wrapper 入场动画结束 + 加载百叶窗媒体资源。
-	// 资源加载（图片 decode / 视频 canplaythrough）通常耗时较长，
-	// 与 content-wrapper 动画等待并行可显著提前资源就绪时机，
-	// 避免快速滚动时 ScrollTrigger pin 已激活但图片/视频尚未就绪。
-	await Promise.all([
-		ensureNoContentWrapperContainingBlock(),
-		hydrateLazyImages(root),
-	]);
+	// 先清掉 content-wrapper 的 transform，让内容立刻可用，不再死等 1.2 秒；
+	// 媒体随后在后台加载完再继续装 ScrollTrigger
+	releaseContentWrapperTransform();
+	await hydrateLazyImages(root);
 
 	if (token !== initToken || !document.contains(root) || !matchesDesktop()) return;
 

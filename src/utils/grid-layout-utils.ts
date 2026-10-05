@@ -2,10 +2,9 @@
  * Check whether the current page is a post detail page
  */
 export function isCurrentPagePost(): boolean {
-	return (
-		window.location.pathname.includes("/posts/") ||
-		window.location.pathname.includes("/post/")
-	);
+	const path = window.location.pathname.replace(/\/+$/, "");
+	if (path === "/posts" || /^\/posts\/\d+$/.test(path)) return false;
+	return path.startsWith("/posts/") || path.startsWith("/post/");
 }
 
 /**
