@@ -22,8 +22,7 @@ export const sponsorConfig: SponsorConfig = {
 		{
 			name: "支付宝",
 			icon: "fa7-brands:alipay",
-			// 占位图路径（二次元占位图，待替换为真实收款码）
-			qrCode: "/assets/images/covers/1.webp",
+			qrCode: "/assets/images/sponsors/alipay.webp",
 			link: "",
 			description: "使用 支付宝 扫码赞助",
 			enabled: true,
@@ -31,7 +30,7 @@ export const sponsorConfig: SponsorConfig = {
 		{
 			name: "微信",
 			icon: "fa7-brands:weixin",
-			qrCode: "/assets/images/covers/2.webp",
+			qrCode: "/assets/images/sponsors/wechat.webp",
 			link: "",
 			description: "使用 微信 扫码赞助",
 			enabled: true,
