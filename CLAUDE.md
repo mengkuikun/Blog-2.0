@@ -50,7 +50,7 @@
 ```
 src/
 ├── assets/images/       # 头像、封面等构建时图片
-├── components/          # 按功能域组织的组件（147 个文件）
+├── components/          # 按功能域组织的组件（148 个文件）
 │   ├── analytics/       # GA, Clarity, Umami (3)
 │   ├── comment/         # 评论系统：index + 5 种后端 + 3 个弹窗组件 + NotebookComment 笔记本列表页自研评论区（笔记引用 >>QUOTE>> 编码 + Waline 树形回复 pid/rid/at + 表情 :item: 标记，昵称/邮箱必填） (10)
 │   ├── common/          # 跨域共享基础组件 (17)
@@ -62,14 +62,14 @@ src/
 │   ├── bills/         # 账单/资金（7：Balance 年度结余横幅卡 + MonthlyFlow 月度流水（按日分组/月份筛选/分页）+ BillCalendar 账单日历（农历+每日收支）+ DailyTrend/ExpenseRank/IncomeCategory/MonthlySummary/YearlyFlow，按图两栏等比缩小）
 │   ├── schedules/     # 日程（3：ScheduleCalendar/ScheduleList/SchedulesView 周视图默认 + 提醒 + 分页等高）
 │   ├── pages/           # 页面级组件：bangumi, books（Bookshelf/BookCard：3D 书本卡片 + 影视页同款胶囊筛选（分类+读过/在读/想读）+ ClientPagination 分页 8/6 本每页，SSR 隐藏非首页防闪烁）, movies-games, music (10)
-│   └── widget/          # 侧栏 Widget (27)
+│   └── widget/          # 侧栏 Widget (28，含 SiteInfo 站点信息：构建平台检测、代码提交跳转、手风琴折叠展开卡片，原版 8px 圆角)
 ├── config/              # 站点配置（27 个 .ts，index.ts barrel export）
 ├── constants/           # 常量：页面尺寸、主题模式、图标、链接预设
 ├── content/             # Astro Content Collections（16 个集合：posts/spec/moments/bangumi/life/notebooks/album/daohang/ziyuan/friends/apps/tombstones/changelog/bills/schedules/equipment）
 │   ├── album/ apps/ bangumi/ changelog/ daohang/ equipment/
 │   ├── friends/ life/ moments/ posts/ spec/ ziyuan/  # spec/about.mdx 为组件化 Q&A；更新日志图谱组件（ChangelogGraph）用于 /changelog/ 页（2026-08-30 起不再嵌入关于页）
 │   └── life/notebooks/  # notebooks 集合物理位置（life 的子目录，2026-09-27 起归档改 card 流，支持 images 多图 12字展开 + 年份下拉联动热力图与列表）
-├── i18n/                # 国际化（5 种语言，340 个翻译键）
+├── i18n/                # 国际化（5 种语言，353 个翻译键）
 │   └── languages/       # en.ts, zh_CN.ts, zh_TW.ts, ja.ts, ru.ts
 ├── layouts/             # Layout.astro (591行), MainGridLayout.astro (305行)
 ├── notes/               # Obsidian 笔记（不发布）
@@ -90,9 +90,9 @@ src/
 │   ├── transitions/     # Swup 过渡动画
 │   └── vendor/          # 第三方覆盖
 ├── types/               # TypeScript 类型：config.ts, bangumi.ts, guestbook-chat.ts
-└── utils/               # 工具函数（44 个文件，含 calendar-milestones.ts / navbar-profile-controller.ts / navbar-dropdown-controller.ts / changelog.ts / tag-graph 控制器 / tts-text 正文提取等）
+└── utils/               # 工具函数（45 个文件，含 build-platform.ts / calendar-milestones.ts / navbar-profile-controller.ts / navbar-dropdown-controller.ts / changelog.ts / tag-graph 控制器 / tts-text 正文提取等）
     ├── 8 个控制器模块   # 见第 10 节
-    └── 34 个业务工具    # content-utils, category-tree（文件夹即分类，多级 `a/b` 推导 + CategoryNode 树）, navbar-dropdown-controller, date-utils, image-utils, url-utils, tts-text（朗读正文提取）...
+    └── 35 个业务工具    # build-platform, content-utils, category-tree（文件夹即分类，多级 `a/b` 推导 + CategoryNode 树）, navbar-dropdown-controller, date-utils, image-utils, url-utils, tts-text（朗读正文提取）...
 
 # 根目录其他重要文件
 .pages.yml                # PagesCMS 后台配置（11 集合声明，见第 19 节）

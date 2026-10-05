@@ -1,103 +1,191 @@
-# 团子博客新功能移植路线图 (Upstream Features Roadmap)
+# 上游（Firefly 原版）新功能移植与演进路线图
 
-> **来源**：原作者 [tianshihao2003/dumplingandcakeblog](https://github.com/tianshihao2003/dumplingandcakeblog)（2026-09-28 ~ 2026-09-30）  
+> **来源**：官方上游 [CuteLeaf/Firefly](https://github.com/CuteLeaf/Firefly)（最新 v6.16+ 系列演进）与演示站 [firefly.cuteleaf.cn](https://firefly.cuteleaf.cn/)  
 > **原则**：
-> 1. **模块化点对点移植**，严禁整仓直接 `git merge`，杜绝他人私人文章/日记/账单污染本站；
-> 2. 严格遵循本站 [CLAUDE.md](file:///f:/GitHub/Blog-plus/CLAUDE.md) 工程规范（Biome 2.5.7、Tailwind v4、5 语言 i18n 同步、EdgeOne Pages 构建）；
-> 3. 每完成一项功能，验证通过并更新本文档状态与 Changelog。
+> 1. **模块化点对点移植**：严禁整仓无脑 `git merge`，杜绝他人私人文章/配置破坏本站已有的深度定制（如连笔手写签名页脚、分享海报画廊、友链大图跟随预览等）；
+> 2. **严格遵循本站 [CLAUDE.md](file:///f:/GitHub/Blog-plus/CLAUDE.md) 工程规范**：Astro 7 + Svelte 5 runes + Tailwind v4、样式由 `src/styles/main.css` 统一管理、5 语言 i18n 全量同步、Swup 生命周期与状态清理，Biome 2.5.7 格式校验；
+> 3. **严禁擅自执行 `git push`**：未获明确指令前所有改动仅保留在本地 Git；
+> 4. **逐项验收**：每完成一项功能，验证通过并更新本文档状态与 Changelog。
 
 ---
 
 ## 进度总览
 
-- [-] **任务 1**：文章页思维导图 & 手风琴目录 + 头部信息面板组 `[已撤销 - 效果不合预期]`
-- [ ] **任务 2**：相册页整面瀑布流照片墙 + 自研灯箱 `[待开始]`
-- [ ] **任务 3**：导航页 4/5 宽屏 + 即时搜索 + 描述悬浮气泡 `[待开始]`
-- [ ] **任务 4**：顶部导航栏悬浮资料面板（发文热力图 + 倒计时进度） `[待开始]`
-- [ ] **任务 5**：友链页极简紧凑改版（保留朋友圈抓取锚点） `[待开始]`
-- [ ] **任务 6**：影视与游戏页 4/5 宽屏现代改版 `[待开始]`
-- [ ] **任务 7**：Swup WAAPI 进度条与底层预取性能优化 `[待开始]`
+### 一、 核心推荐（高适配度·阅读与交互体验）
+- [x] **特性 0**：**站点信息侧边栏小组件 (SiteInfo)** `[已完成 2026-10-05]`
+- [ ] **特性 1**：[沉浸式专注阅读模式 (Immersive Reading)](#特性-1沉浸式专注阅读模式-immersive-reading) `[待开始]`
+- [ ] **特性 2**：[灵动伸缩导航栏 (Dynamic Navbar)](#特性-2灵动伸缩导航栏-dynamic-navbar) `[待开始]`
+- [ ] **特性 3**：[文章底部推荐与随机探索卡片 (Related & Random Posts)](#特性-3文章底部推荐与随机探索卡片-related--random-posts) `[待开始]`
+- [ ] **特性 4**：[文章系列专栏系统与聚合大厅 (Series System & /series)](#特性-4文章系列专栏系统与聚合大厅-series-system---series) `[待开始]`
+
+### 二、 内容表达与安全增强
+- [ ] **特性 5**：[文章端到端密码加密 (Encrypted Post & Content)](#特性-5文章端到端密码加密-encrypted-post--content) `[待开始]`
+- [ ] **特性 6**：[Tab 多标签代码组 (Code Group Tabs)](#特性-6tab-多标签代码组-code-group-tabs) `[待开始]`
+- [ ] **特性 7**：[GitHub 动态仓库卡片运行时 (GitHub Card Runtime)](#特性-7github-动态仓库卡片运行时-github-card-runtime) `[待开始]`
+
+### 三、 个性化与二次元挂件
+- [ ] **特性 8**：[B 站追番与影视库页面 (Bilibili Anime Page)](#特性-8b-站追番与影视库页面-bilibili-anime-page) `[待开始]`
+- [ ] **特性 9**：[Spine 2D 骨骼动画看板娘挂件 (Spine Model Widget)](#特性-9spine-2d-骨骼动画看板娘挂件-spine-model-widget) `[待开始]`
+- [ ] **特性 10**：[外观个性化集成控制面板 (Display Settings Integrated)](#特性-10外观个性化集成控制面板-display-settings-integrated) `[待开始]`
+
+### 四、 底层性能优化（遗留精选）
+- [ ] **优化 1**：[Swup WAAPI 进度条与底层预取性能优化](#优化-1swup-waapi-进度条与底层预取性能优化) `[待开始]`
 
 ---
 
 ## 详细功能规划
 
-### 任务 1：文章页思维导图 & 手风琴目录 + 头部信息面板组
-- **状态**：🔴 **已撤销 (Reverted)** - 经实测视觉与交互体验不合站长预期，已完全安全回退
-- **对应上游提交**：`c80fb363`、`61f46a0f`、`d9902d44`、`efae6fde`、`f59a108f`
-- **核心内容**：
-  1. **标题下方信息面板组**（`post-intro-card`）：
-     - ① 文章过期提示：动态计算天数（超过 `siteConfig.outdatedThreshold` 30 天显示提示）；
-     - ② AI 摘要：原生 `<details>` 折叠，平滑旋转箭头；
-     - ③ 封面图抽屉：详情页显示封面图，默认折叠收起。
-     - ④ 顶部留白收紧与标题排版优化。
-  2. **新版文章右侧目录 (TOC)**：
-     - 树状手风琴结构与滚动同步高亮（Scrollspy）；
-     - 平滑 **SVG 肘形连线**（1.5px，活动链与悬停链青色高亮）；
-     - **思维导图弹窗 (Markmap 风格)**：支持全屏、光标为中心滚轮缩放、拖拽平移、重置；
-     - 彻底消除重排布局抖动（批量计算坐标再绘线，打开速度从 1.5s 优化至 20ms）。
-  3. **依赖与 i18n**：
-     - 同步 5 国语言 i18n（`tocExpandAll`, `tocCollapseAll`, `readingProgress`, `tocAccordionAuto`, `tocMindMap`, 等）；
-     - 安装 `@iconify-json/mingcute`、`@iconify-json/ri`（如有需要）。
+### 特性 1：沉浸式专注阅读模式 (Immersive Reading)
+- **状态**：⚪ **待开始 (Pending)**
+- **适配度**：★★★★★（100% 适配，纯 CSS + 原生 TS，零第三方重型依赖）
+- **对应上游提交**：`a71b34e6`、`b762fe48`、`783d10b2`
+- **涉及文件**：
+  - `src/components/controls/ImmersiveReading.astro`（悬浮开关按钮）
+  - `src/components/controls/ImmersiveTOC.astro`（独立专属浮动目录栏）
+  - `src/utils/immersive-reading-utils.ts`（进退控制、快捷键与滚动监听）
+  - `src/styles/immersive-reading.css`（正文满屏居中、页眉页脚与侧栏淡出动画）
+- **核心体验**：
+  1. 在文章页右下角提供“专注阅读”按钮（或按键盘 `Esc` 键退出）；
+  2. 激活时，整站页眉导航栏、页脚、侧边栏优雅平滑淡出，视口最大化留给文章正文；
+  3. 左侧（或右侧）呼出简洁的浮动目录导航（支持平滑滚动与高亮跟随）；
+  4. 阅读长文、专业技术教程或小说时具备类电子书/微信读书的沉浸体验。
 
 ---
 
-### 任务 2：相册页整面瀑布流照片墙 + 自研灯箱
+### 特性 2：灵动伸缩导航栏 (Dynamic Navbar)
 - **状态**：⚪ **待开始 (Pending)**
-- **对应上游提交**：`958e8223`、`a67075aa`
-- **核心内容**：
-  1. 废除单相册堆叠卡片，所有照片打平铺成 **CSS Columns 瀑布流**（桌面 5 列 ~ 手机 2 列）；
-  2. 顶部提供实时搜索与相册名称分类筛选（下划线高亮，不吸顶跟随滚动）；
-  3. 点击唤起自研全屏大图灯箱（手势滑动、左右键切换、ESC 关闭，位置避让搜索按钮）；
-  4. 完美对接当前已配置的 Cloudflare ImgBed 自建图床。
+- **适配度**：★★★★★（100% 适配，纯原生微交互，提升移动端与桌面端屏幕利用率）
+- **对应上游提交**：`eea6b557`、`6d53242c`
+- **涉及文件**：
+  - `src/config/siteConfig.ts`（增加 `navbar.mode: "dynamic" | "fixed" | "static"`）
+  - `src/utils/scroll-utils.ts` / `src/components/layout/Navbar.astro`
+  - 导航栏平滑过渡样式
+- **核心体验**：
+  1. 向下浏览正文时，顶部导航栏自动上滑隐藏，让出更多可视屏幕空间；
+  2. 向上轻滚滚轮或轻微上滑，导航栏立即轻盈浮现，方便随时翻页或搜索；
+  3. 在首屏 Banner 区域内常驻显示，不发生误触发。
 
 ---
 
-### 任务 3：导航页 4/5 宽屏 + 即时搜索 + 描述悬浮气泡
+### 特性 3：文章底部推荐与随机探索卡片 (Related & Random Posts)
 - **状态**：⚪ **待开始 (Pending)**
-- **对应上游提交**：`8d802592`、`ac26ff1a`、`275d49e2`、`c42e3adb`
-- **核心内容**：
-  1. 页面扩展至 80vw（去掉旧左右侧栏）；
-  2. 左栏粘性分类导航（支持 `#nav-分类` URL 锚点定位）；
-  3. 顶部输入即筛（实时过滤网站）；
-  4. 分类标题行带衬线双引号标语与子标签（tags）二级分类筛选；
-  5. 卡片单行描述超出省略，悬浮弹出深色完整气泡浮层（带完整说明与真实域名）。
+- **适配度**：★★★★★（纯客户端轻量渲染，支持 Swup 切页重刷）
+- **对应上游提交**：原版经典推荐架构
+- **涉及文件**：
+  - `src/components/misc/RecommendedPost.astro`
+  - `src/pages/posts/[...slug].astro`
+- **核心体验**：
+  1. 在文章末尾提供精美双栏推荐卡片：
+     - **左栏·相关推荐**：根据当前文章的分类与标签，智能挑选 5 篇强关联文章；
+     - **右栏·随机漫游**：利用博客已有的 `allPostMeta.json`，纯前端随机洗牌推荐 5 篇往期冷门文章；
+  2. 有效避免访客“读完即走”，增加站内深层链接曝光与留存率。
 
 ---
 
-### 任务 4：顶部导航栏悬浮资料面板（发文热力图 + 倒计时进度）
+### 特性 4：文章系列专栏系统与聚合大厅 (Series System & /series)
 - **状态**：⚪ **待开始 (Pending)**
-- **对应上游提交**：`d478e651`、`5fa4d76f`、`dcfd45bc`、`82e6744a`、`f441a474`
-- **核心内容**：
-  1. 鼠标悬停站点名/头像平滑展开双栏面板；
-  2. 左栏：博主名片 + 社交图标 + 当年 48 周发文热力图；
-  3. 右栏：周末/月末/年末倒计时 + 关键纪念日/节日环形进度条 + 我的站点快捷入口。
+- **适配度**：★★★★★（Astro content collection 字段规范扩展）
+- **对应上游提交**：原版系列专栏架构
+- **涉及文件**：
+  - `src/components/misc/SeriesNav.astro`（文章顶部手风琴专栏折叠条）
+  - `src/pages/series/index.astro`（/series 专栏聚合大厅）
+  - `src/utils/content-utils.ts`（`getSeriesList()` 工具函数）
+- **核心体验**：
+  1. 在文章 frontmatter 声明 `series: "前端工程化系列"`；
+  2. 文章顶部自动渲染“系列专栏”卡片，清晰标明“当前是第 X 篇”，点击可展开全套篇目并直接跳转；
+  3. 拥有独立的 `/series` 专栏聚合页面，方便读者按成套专题系统性学习。
 
 ---
 
-### 任务 5：友链页极简紧凑改版（保留朋友圈抓取锚点）
+### 特性 5：文章端到端密码加密 (Encrypted Post & Content)
 - **状态**：⚪ **待开始 (Pending)**
-- **对应上游提交**：`47ee1fc6`
-- **核心内容**：
-  1. 整页扩展到 80vw 宽屏；
-  2. 卡片改为「头像 + 昵称」单行紧凑布局，悬停保留大图预览；
-  3. 严格保留朋友圈爬虫选择器（`.friend-card`, `data-title`, `data-siteurl`, `.friend-card-avatar__img`），确保 `cir.imki.cn` 正常抓取。
+- **适配度**：★★★★☆（无后端数据库依赖，纯前端 Web Crypto API 安全解密）
+- **对应上游提交**：原版内容加密系统
+- **涉及文件**：
+  - `src/components/features/EncryptedPost.astro`
+  - `src/components/features/EncryptedContent.astro`
+  - `src/utils/crypto-utils.ts`（AES-GCM + PBKDF2）
+- **核心体验**：
+  1. 在文章 frontmatter 中标注 `password: "xxx"` 或使用加密容器标签；
+  2. 构建期将 HTML 静态加密为密文，外部查看网页源码只有乱码；
+  3. 读者在网页输入密码后由浏览器本地解密呈现，支持 `sessionStorage` 记住会话密码。适合私密日记、私人备忘与好友圈文章。
 
 ---
 
-### 任务 6：影视与游戏页 4/5 宽屏现代改版
+### 特性 6：Tab 多标签代码组 (Code Group Tabs)
 - **状态**：⚪ **待开始 (Pending)**
-- **对应上游提交**：`fee9acb0`
-- **核心内容**：
-  1. 扩展至 80vw，去除左右小组件；
-  2. 左栏垂直分类切换，卡片圆角与封面网格重构。
+- **适配度**：★★★★★（纯 Markdown 增强，开发者写技术文章刚需）
+- **对应上游提交**：原版 `CodeGroupManager.astro`
+- **涉及文件**：
+  - `src/components/features/CodeGroupManager.astro`
+  - Markdown/Rehype 插件支持
+- **核心体验**：
+  1. 支持在 Markdown 中并列排版多标签代码块（如 `pnpm / npm / yarn` 或 `TS / JS / Python`）；
+  2. 支持鼠标点击与键盘左右箭头无缝切换，Swup 导航切页状态稳定。
 
 ---
 
-### 任务 7：Swup WAAPI 进度条与底层预取性能优化
+### 特性 7：GitHub 动态仓库卡片运行时 (GitHub Card Runtime)
 - **状态**：⚪ **待开始 (Pending)**
-- **对应上游提交**：`9c4d4442`、`d2280414`、`18690aba`
+- **适配度**：★★★★★（增强文章表现力）
+- **对应上游提交**：原版 `GithubCardManager.astro`
+- **涉及文件**：
+  - `src/components/features/GithubCardManager.astro`
+  - `src/utils/github-card-utils.ts`
+- **核心体验**：
+  1. 在文章中引用开源项目时，构建期提供静态兜底信息；
+  2. 浏览器运行时异步请求 GitHub API 实时刷新 **Stars ⭐ 数、Forks 🍴 数、主语言标签与作者头像**；
+  3. 内置 24 小时 localStorage 缓存去重，兼具极速加载与实时数据。
+
+---
+
+### 特性 8：B 站追番与影视库页面 (Bilibili Anime Page)
+- **状态**：⚪ **待开始 (Pending)**
+- **适配度**：★★★★☆（配置即用，二次元爱好者必备）
+- **对应上游提交**：原版 `bilibili.astro` 系列组件
+- **涉及文件**：
+  - `src/pages/bilibili.astro`
+  - `src/components/pages/bilibili/BilibiliGrid.svelte`
+  - `src/components/pages/bilibili/BilibiliDetailModal.svelte`
+  - `src/utils/bilibili-utils.ts`
+- **核心体验**：
+  1. 仅需配置个人 B 站 UID，构建期自动同步追番与追剧数据；
+  2. 展示海报墙、观看进度、更新集数、官方评分以及弹出式详情窗口；
+  3. 与站内现有的 Bangumi 页面形成完整互补。
+
+---
+
+### 特性 9：Spine 2D 骨骼动画看板娘挂件 (Spine Model Widget)
+- **状态**：⚪ **待开始 (Pending)**
+- **适配度**：★★★★☆（相比 Live2D 性能更高、占用更轻）
+- **对应上游提交**：原版 `SpineModel.astro`
+- **涉及文件**：
+  - `src/components/features/SpineModel.astro`
+  - `src/components/widget/SpineModel.astro`
+- **核心体验**：
+  1. 原生支持加载 Spine 2D 骨骼动作模型（如《碧蓝档案》、《明日方舟》等二次元游戏模型）；
+  2. 支持常态待机动作呼吸、鼠标点击互动、提示气泡与动作随机切换；
+  3. 可自由放置于侧边栏或悬浮于页面右下角。
+
+---
+
+### 特性 10：外观个性化集成控制面板 (Display Settings Integrated)
+- **状态**：⚪ **待开始 (Pending)**
+- **适配度**：★★★★☆（需与现有控制按钮样式融合）
+- **对应上游提交**：原版 `DisplaySettingsIntegrated.svelte`
+- **涉及文件**：
+  - `src/components/controls/DisplaySettingsIntegrated.svelte`
+- **核心体验**：
+  1. 提供悬浮外观设置抽屉，访客可自由拖动**主题色相滑块（整站 `--hue` 实时变色）**；
+  2. 支持切换**全屏壁纸经典模式 (Classic) / 沉浸首屏大图模式 (Hero)**；
+  3. 支持实时调节卡片透明度、毛玻璃模糊度以及**樱花飘落 / 水波纹动效**开关。
+
+---
+
+### 优化 1：Swup WAAPI 进度条与底层预取性能优化
+- **状态**：⚪ **待开始 (Pending)**
+- **适配度**：★★★★★（底层通用优化）
+- **对应提交**：`9c4d4442`、`d2280414`、`18690aba`
 - **核心内容**：
-  1. Swup 页面过渡进度条迁移到 Web Animations API，消除 Layout Thrashing；
-  2. 鼠标悬停链接时预取目标页样式；
-  3. 首页背景图轻量化优化。
+  1. Swup 页面过渡顶部进度条迁移至现代 Web Animations API (WAAPI)，消除旧版频繁修改 style 造成的 Layout Thrashing；
+  2. 鼠标悬停链接时智能预取目标页面样式表与静态资源，让点击跳转接近 0 延迟。

@@ -114,21 +114,35 @@ const processedLinks = navBarConfig.links.map((link) => {
 })();
 </script>
 
-<script is:inline>
+<script is:inline data-swup-ignore-script>
 (function() {
+  if (window.__mobileMenuSheetScriptInited) return;
+  window.__mobileMenuSheetScriptInited = true;
+
   function closeAllDetails() {
     document.querySelectorAll('#menu-sheet details[open]').forEach(function(d) { d.removeAttribute('open'); });
   }
-  // 一次只能打开一个
+
+  // 一次只能打开一个，展开时自动向上滚动对齐
   document.querySelectorAll('#menu-sheet details').forEach(function(detail) {
     detail.addEventListener('toggle', function() {
       if (this.open) {
         document.querySelectorAll('#menu-sheet details[open]').forEach(function(other) {
           if (other !== detail) other.removeAttribute('open');
         });
+
+        // 展开时平滑滚动对齐，确保展开出的子项完整显现
+        var sheet = document.getElementById('menu-sheet');
+        if (sheet) {
+          setTimeout(function() {
+            var lastChild = detail.querySelector('.menu-sheet__subrow:last-child') || detail;
+            lastChild.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+          }, 100);
+        }
       }
     });
   });
+
   // 每次打开卡片时全部收起
   var sheet = document.getElementById('menu-sheet');
   if (sheet) {

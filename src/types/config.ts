@@ -586,7 +586,8 @@ export type WidgetComponentType =
 	| "siteHeatmap"
 	| "quoteOfTheDay"
 	| "douyinHot"
-	| "weather";
+	| "weather"
+	| "siteInfo";
 
 // 恋爱计时小组件配置
 export type RelationshipConfig = {

@@ -417,4 +417,19 @@ export const ja: Translation = {
 	[Key.dayShort]: "日",
 	[Key.calendarDataUnavailable]: "データ取得失敗",
 	[Key.calendarNoHoliday]: "直近の祝日なし",
+
+	// サイト情報
+	[Key.siteInfo]: "サイト情報",
+	[Key.siteInfoBuildTime]: "ビルド日時",
+	[Key.siteInfoBuildPlatform]: "ビルドプラットフォーム",
+	[Key.siteInfoBlogVersion]: "ブログバージョン",
+	[Key.siteInfoGitCommit]: "コミット",
+	[Key.siteInfoAstroVersion]: "Astro",
+	[Key.siteInfoNodeVersion]: "Node",
+	[Key.siteInfoPnpmVersion]: "pnpm",
+	[Key.siteInfoSystem]: "システム情報",
+	[Key.siteInfoExpand]: "ビルド情報を展開",
+	[Key.siteInfoCollapse]: "ビルド情報を折畳む",
+	[Key.siteInfoDomain]: "ドメイン",
+	[Key.siteInfoLicense]: "ライセンス",
 };

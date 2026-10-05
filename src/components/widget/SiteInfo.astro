@@ -1,0 +1,334 @@
+---
+import { execSync } from "node:child_process";
+import { readFileSync } from "node:fs";
+import { createRequire } from "node:module";
+import { Icon } from "astro-icon/components";
+import WidgetLayout from "@/components/common/WidgetLayout.astro";
+import { licenseConfig, siteConfig } from "@/config";
+import I18nKey from "@/i18n/i18nKey";
+import { i18n } from "@/i18n/translation";
+import type { WidgetComponentConfig } from "@/types/config";
+import { detectBuildPlatform } from "@/utils/build-platform";
+import { formatDateI18nWithTime } from "@/utils/date-utils";
+
+interface Props {
+	class?: string;
+	style?: string;
+	widgetConfig?: WidgetComponentConfig;
+}
+
+const { class: className, style } = Astro.props;
+
+// ---- 构建时收集版本和环境信息 ----
+
+// Git Commit 哈希
+let gitCommit = "";
+try {
+	gitCommit = execSync("git rev-parse --short HEAD").toString().trim();
+} catch {}
+if (!gitCommit && process.env.GITHUB_SHA) {
+	gitCommit = process.env.GITHUB_SHA.slice(0, 7);
+}
+const commitUrl = gitCommit
+	? `https://github.com/mengkuikun/Blog-2.0/commit/${gitCommit}`
+	: undefined;
+
+// 博客版本（从 package.json 读取）
+let blogVersion = "6.6.13";
+try {
+	const pkg = JSON.parse(
+		readFileSync(new URL("../../../package.json", import.meta.url), "utf-8"),
+	);
+	blogVersion = pkg.version || "6.6.13";
+} catch {}
+
+// Astro 版本（从已安装的 astro 包读取）
+let astroVersion = "7.3.2";
+try {
+	const require = createRequire(import.meta.url);
+	const astroPkg = require("astro/package.json");
+	astroVersion = astroPkg.version || "7.3.2";
+} catch {}
+
+// Node 版本
+const nodeVersion = process.version;
+
+// pnpm 版本（从 npm_config_user_agent 解析）
+let pnpmVersion = "v9.14.4";
+const userAgent = process.env.npm_config_user_agent || "";
+const pnpmMatch = userAgent.match(/pnpm\/([\d.]+)/);
+if (pnpmMatch) {
+	pnpmVersion = `v${pnpmMatch[1]}`;
+}
+
+// 构建时间
+const buildTime = formatDateI18nWithTime(new Date());
+
+// 构建平台检测
+const buildPlatform = detectBuildPlatform({
+	isDev: import.meta.env.DEV,
+});
+
+// 系统信息（平台 + 架构）
+const platformMap: Record<string, string> = {
+	win32: "Windows",
+	darwin: "macOS",
+	linux: "Linux",
+	freebsd: "FreeBSD",
+};
+const archMap: Record<string, string> = {
+	x64: "x86_64",
+	arm64: "ARM64",
+	arm: "ARM",
+	ia32: "x86",
+};
+const osName = platformMap[process.platform] || process.platform;
+const archName = archMap[process.arch] || process.arch;
+const systemInfo = `${osName} / ${archName}`;
+
+// 站点域名（去掉协议前缀）
+const siteDomain = siteConfig.site_url
+	? siteConfig.site_url.replace(/^https?:\/\//, "").replace(/\/$/, "")
+	: "blog.example.com";
+
+// 文章许可
+const licenseName = licenseConfig.enable ? licenseConfig.name : "None";
+
+// ---- 组装展示数据 ----
+// 始终显示的项目（列表）
+const mainItems: {
+	icon: string;
+	label: string;
+	value: string;
+	href?: string;
+}[] = [
+	{
+		icon: "material-symbols:cloud-outline",
+		label: i18n(I18nKey.siteInfoBuildPlatform),
+		value: buildPlatform,
+	},
+	{
+		icon: "fa7-brands:github",
+		label: i18n(I18nKey.siteInfoGitCommit),
+		value: gitCommit ? `#${gitCommit}` : "Unknown",
+		href: commitUrl,
+	},
+	{
+		icon: "material-symbols:copyright-outline",
+		label: i18n(I18nKey.siteInfoLicense),
+		value: licenseName,
+	},
+];
+
+// 可折叠的项目（格子布局）
+const detailItems: {
+	icon: string;
+	label: string;
+	value: string;
+	fullWidth?: boolean;
+}[] = [
+	{
+		icon: "material-symbols:language",
+		label: i18n(I18nKey.siteInfoDomain),
+		value: siteDomain,
+		fullWidth: true,
+	},
+	{
+		icon: "mdi:clover",
+		label: "Firefly",
+		value: `v${blogVersion}`,
+	},
+	{
+		icon: "material-symbols:rocket-launch-outline",
+		label: i18n(I18nKey.siteInfoAstroVersion),
+		value: `v${astroVersion}`,
+	},
+	{
+		icon: "fa7-brands:node-js",
+		label: i18n(I18nKey.siteInfoNodeVersion),
+		value: nodeVersion,
+	},
+	{
+		icon: "simple-icons:pnpm",
+		label: i18n(I18nKey.siteInfoPnpmVersion),
+		value: pnpmVersion,
+	},
+	{
+		icon: "material-symbols:build-outline",
+		label: i18n(I18nKey.siteInfoBuildTime),
+		value: buildTime,
+		fullWidth: true,
+	},
+	{
+		icon: "material-symbols:computer-outline",
+		label: i18n(I18nKey.siteInfoSystem),
+		value: systemInfo,
+		fullWidth: true,
+	},
+];
+---
+
+<WidgetLayout
+  name={i18n(I18nKey.siteInfo)}
+  id="site-info"
+  class={className}
+  style={style}
+>
+  <div class="flex flex-col gap-2">
+    {/* 始终显示的项目（列表卡片） */}
+    <div class="flex flex-col gap-2">
+      {
+        mainItems.map((item) => (
+          <div class="site-info-main-item flex items-center justify-between px-3 py-2">
+            <div class="flex items-center gap-2.5 shrink-0">
+              <div class="text-(--primary) text-lg shrink-0">
+                <Icon name={item.icon} />
+              </div>
+              <span class="text-neutral-700 dark:text-neutral-300 font-medium text-sm">
+                {item.label}
+              </span>
+            </div>
+            {item.href ? (
+              <a
+                href={item.href}
+                target="_blank"
+                rel="noopener noreferrer"
+                class="text-xs font-bold text-neutral-900 dark:text-neutral-100 text-right ml-2 min-w-0 truncate hover:text-(--primary) transition-colors"
+                title={item.value}
+              >
+                {item.value}
+              </a>
+            ) : (
+              <span
+                class="text-xs font-bold text-neutral-900 dark:text-neutral-100 text-right ml-2 min-w-0 truncate"
+                title={item.value}
+              >
+                {item.value}
+              </span>
+            )}
+          </div>
+        ))
+      }
+    </div>
+
+    {/* 可折叠区域（格子布局） */}
+    <site-info-collapse
+      data-expand-text={i18n(I18nKey.siteInfoExpand)}
+      data-collapse-text={i18n(I18nKey.siteInfoCollapse)}
+      class="block"
+    >
+      <div class="site-info-detail overflow-hidden transition-[max-height,opacity] duration-300 ease-in-out collapsed">
+        <div class="grid grid-cols-2 gap-2 pt-1 pb-1">
+          {
+            detailItems.map((item) => (
+              <div
+                class:list={[
+                  "site-info-card flex flex-col items-center gap-1 py-2 px-1 bg-neutral-100/60 dark:bg-neutral-800/50 select-none",
+                  { "col-span-2": item.fullWidth },
+                ]}
+              >
+                <div class="text-(--primary) text-lg">
+                  <Icon name={item.icon} />
+                </div>
+                <span class="text-xs text-neutral-500 dark:text-neutral-400">
+                  {item.label}
+                </span>
+                <span
+                  class:list={[
+                    "font-bold text-neutral-900 dark:text-neutral-100 text-center truncate w-full px-1",
+                    item.fullWidth ? "text-xs" : "text-sm",
+                  ]}
+                  title={item.value}
+                >
+                  {item.value}
+                </span>
+              </div>
+            ))
+          }
+        </div>
+      </div>
+      <button
+        type="button"
+        class="site-info-toggle-btn btn-plain w-full h-8 flex items-center justify-center gap-1.5 mt-1 text-(--primary) text-sm cursor-pointer select-none active:scale-95"
+        aria-expanded="false"
+      >
+        <Icon
+          name="material-symbols:keyboard-arrow-down-rounded"
+          class="site-info-toggle-icon w-6 h-6 transition-transform duration-200"
+        />
+        <span class="site-info-toggle-text text-sm"></span>
+      </button>
+    </site-info-collapse>
+  </div>
+</WidgetLayout>
+
+<style>
+  /* 严格对齐 CuteLeaf/Firefly 原版 rounded-lg (8px / 0.5rem)，显式声明避免受当前主题全局覆盖为 0px 直角 */
+  .site-info-main-item {
+    border-radius: 0.5rem;
+  }
+  .site-info-card {
+    border-radius: 0.5rem;
+  }
+  .site-info-toggle-btn {
+    border-radius: 0.5rem;
+  }
+
+  /* 折叠动画 */
+  site-info-collapse .collapsed {
+    max-height: 0;
+    opacity: 0;
+    pointer-events: none;
+  }
+  site-info-collapse .site-info-detail:not(.collapsed) {
+    max-height: 500px;
+    opacity: 1;
+  }
+</style>
+
+<script>
+  class SiteInfoCollapse extends HTMLElement {
+    private cleanupHandler: (() => void) | null = null;
+
+    connectedCallback() {
+      const btn = this.querySelector<HTMLButtonElement>(".site-info-toggle-btn");
+      const detail = this.querySelector<HTMLElement>(".site-info-detail");
+      const textEl = this.querySelector<HTMLElement>(".site-info-toggle-text");
+      const iconEl = this.querySelector<HTMLElement>(".site-info-toggle-icon");
+      if (!btn || !detail || !textEl) return;
+
+      const expandText = this.dataset.expandText || "展开构建信息";
+      const collapseText = this.dataset.collapseText || "收起构建信息";
+
+      let expanded = !detail.classList.contains("collapsed");
+      textEl.textContent = expanded ? collapseText : expandText;
+      btn.setAttribute("aria-expanded", String(expanded));
+
+      const handleClick = () => {
+        expanded = !expanded;
+        detail.classList.toggle("collapsed", !expanded);
+        textEl.textContent = expanded ? collapseText : expandText;
+        btn.setAttribute("aria-expanded", String(expanded));
+        if (iconEl) {
+          iconEl.style.transform = expanded ? "rotate(180deg)" : "rotate(0deg)";
+        }
+      };
+
+      btn.addEventListener("click", handleClick);
+      this.cleanupHandler = () => {
+        btn.removeEventListener("click", handleClick);
+      };
+    }
+
+    disconnectedCallback() {
+      if (this.cleanupHandler) {
+        this.cleanupHandler();
+        this.cleanupHandler = null;
+      }
+    }
+  }
+
+  if (!customElements.get("site-info-collapse")) {
+    customElements.define("site-info-collapse", SiteInfoCollapse);
+  }
+</script>

@@ -15,6 +15,7 @@ import RecentItems from "@/components/widget/RecentItems.astro";
 import RelationshipTimer from "@/components/widget/RelationshipTimer.astro";
 import SidebarTOC from "@/components/widget/SidebarTOC.astro";
 import SiteHeatmap from "@/components/widget/SiteHeatmap.astro";
+import SiteInfo from "@/components/widget/SiteInfo.astro";
 import SiteStats from "@/components/widget/SiteStats.astro";
 import Tags from "@/components/widget/Tags.astro";
 import Weather from "@/components/widget/Weather.astro";
@@ -66,6 +67,7 @@ const componentMap = {
 	quoteOfTheDay: QuoteOfTheDay,
 	douyinHot: DouyinHot as AstroComponentFactory,
 	weather: Weather as AstroComponentFactory,
+	siteInfo: SiteInfo as AstroComponentFactory,
 } satisfies Record<WidgetComponentType, AstroComponentFactory>;
 
 // 获取侧边栏位置
