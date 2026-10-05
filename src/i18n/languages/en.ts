@@ -417,4 +417,19 @@ export const en: Translation = {
 	[Key.dayShort]: "d",
 	[Key.calendarDataUnavailable]: "Unavailable",
 	[Key.calendarNoHoliday]: "No Upcoming Holidays",
+
+	// Site Info
+	[Key.siteInfo]: "Site Info",
+	[Key.siteInfoBuildTime]: "Build Time",
+	[Key.siteInfoBuildPlatform]: "Build Platform",
+	[Key.siteInfoBlogVersion]: "Blog Version",
+	[Key.siteInfoGitCommit]: "Commit",
+	[Key.siteInfoAstroVersion]: "Astro",
+	[Key.siteInfoNodeVersion]: "Node",
+	[Key.siteInfoPnpmVersion]: "pnpm",
+	[Key.siteInfoSystem]: "System",
+	[Key.siteInfoExpand]: "Show build info",
+	[Key.siteInfoCollapse]: "Hide build info",
+	[Key.siteInfoDomain]: "Domain",
+	[Key.siteInfoLicense]: "License",
 };

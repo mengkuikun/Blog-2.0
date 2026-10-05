@@ -409,4 +409,19 @@ export const zh_TW: Translation = {
 	[Key.dayShort]: "天",
 	[Key.calendarDataUnavailable]: "數據不可用",
 	[Key.calendarNoHoliday]: "近期無節日",
+
+	// 站點資訊
+	[Key.siteInfo]: "站點資訊",
+	[Key.siteInfoBuildTime]: "構建時間",
+	[Key.siteInfoBuildPlatform]: "構建平台",
+	[Key.siteInfoBlogVersion]: "部落格版本",
+	[Key.siteInfoGitCommit]: "代碼提交",
+	[Key.siteInfoAstroVersion]: "Astro",
+	[Key.siteInfoNodeVersion]: "Node",
+	[Key.siteInfoPnpmVersion]: "pnpm",
+	[Key.siteInfoSystem]: "系統資訊",
+	[Key.siteInfoExpand]: "展開構建資訊",
+	[Key.siteInfoCollapse]: "收起構建資訊",
+	[Key.siteInfoDomain]: "站點域名",
+	[Key.siteInfoLicense]: "文章許可",
 };

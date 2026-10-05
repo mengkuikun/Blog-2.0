@@ -419,4 +419,19 @@ export const ru: Translation = {
 	[Key.dayShort]: "дн.",
 	[Key.calendarDataUnavailable]: "Данные недоступны",
 	[Key.calendarNoHoliday]: "Нет праздников",
+
+	// Информация о сайте
+	[Key.siteInfo]: "Информация о сайте",
+	[Key.siteInfoBuildTime]: "Время сборки",
+	[Key.siteInfoBuildPlatform]: "Платформа сборки",
+	[Key.siteInfoBlogVersion]: "Версия блога",
+	[Key.siteInfoGitCommit]: "Коммит",
+	[Key.siteInfoAstroVersion]: "Astro",
+	[Key.siteInfoNodeVersion]: "Node",
+	[Key.siteInfoPnpmVersion]: "pnpm",
+	[Key.siteInfoSystem]: "Система",
+	[Key.siteInfoExpand]: "Показать информацию о сборке",
+	[Key.siteInfoCollapse]: "Скрыть информацию о сборке",
+	[Key.siteInfoDomain]: "Домен",
+	[Key.siteInfoLicense]: "Лицензия",
 };

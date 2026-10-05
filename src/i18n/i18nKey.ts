@@ -401,6 +401,21 @@ enum I18nKey {
 	dayShort = "dayShort",
 	calendarDataUnavailable = "calendarDataUnavailable",
 	calendarNoHoliday = "calendarNoHoliday",
+
+	// 站点信息组件
+	siteInfo = "siteInfo",
+	siteInfoBuildTime = "siteInfoBuildTime",
+	siteInfoBuildPlatform = "siteInfoBuildPlatform",
+	siteInfoBlogVersion = "siteInfoBlogVersion",
+	siteInfoGitCommit = "siteInfoGitCommit",
+	siteInfoAstroVersion = "siteInfoAstroVersion",
+	siteInfoNodeVersion = "siteInfoNodeVersion",
+	siteInfoPnpmVersion = "siteInfoPnpmVersion",
+	siteInfoSystem = "siteInfoSystem",
+	siteInfoExpand = "siteInfoExpand",
+	siteInfoCollapse = "siteInfoCollapse",
+	siteInfoDomain = "siteInfoDomain",
+	siteInfoLicense = "siteInfoLicense",
 }
 
 export default I18nKey;
