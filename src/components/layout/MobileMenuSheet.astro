@@ -27,6 +27,26 @@ const processedLinks = navBarConfig.links.map((link) => {
 
 <div class="menu-sheet" id="menu-sheet" role="dialog" aria-label="菜单">
   <div class="menu-sheet__header">
+    <!-- 站长个人资料卡快捷胶囊入口 -->
+    <button
+      type="button"
+      class="menu-sheet__profile-chip"
+      id="menu-sheet-profile-btn"
+      aria-label="查看站长资料卡"
+    >
+      <img
+        src={profileConfig.avatar?.startsWith("/") ? url(profileConfig.avatar) : profileConfig.avatar || url("/avatar.jpg")}
+        alt=""
+        class="menu-sheet__profile-avatar-mini"
+        loading="lazy"
+      />
+      <span class="menu-sheet__profile-name">{profileConfig.name}</span>
+      <span class="menu-sheet__profile-tag">
+        资料卡
+        <Icon name="material-symbols:chevron-right-rounded" class="text-xs inline ml-0.5" />
+      </span>
+    </button>
+
     <span class="menu-sheet__header-title">菜单</span>
     <button class="menu-sheet__close" id="menu-sheet-close" aria-label="关闭" type="button">
       <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -34,33 +54,6 @@ const processedLinks = navBarConfig.links.map((link) => {
       </svg>
     </button>
   </div>
-
-  <!-- 站长个人资料卡快捷入口 -->
-  <button
-    type="button"
-    class="menu-sheet__profile-card"
-    id="menu-sheet-profile-btn"
-    aria-label="查看站长资料卡"
-  >
-    <span class="menu-sheet__profile-avatar">
-      <img
-        src={profileConfig.avatar?.startsWith("/") ? url(profileConfig.avatar) : profileConfig.avatar || url("/avatar.jpg")}
-        alt=""
-        class="w-10 h-10 rounded-full object-cover"
-        loading="lazy"
-      />
-    </span>
-    <span class="menu-sheet__profile-info">
-      <span class="menu-sheet__profile-name-row">
-        <strong class="menu-sheet__profile-name">{profileConfig.name}</strong>
-        <span class="menu-sheet__profile-tag">资料卡</span>
-      </span>
-      <span class="menu-sheet__profile-desc">{profileConfig.occupation || "折腾爱好者 · 生活记录者"}</span>
-    </span>
-    <span class="menu-sheet__profile-arrow">
-      <Icon name="material-symbols:chevron-right-rounded" />
-    </span>
-  </button>
 
   <nav class="menu-sheet__nav" aria-label="主导航">
     {processedLinks.map((link) =>
@@ -123,22 +116,13 @@ const processedLinks = navBarConfig.links.map((link) => {
     document.querySelectorAll('#menu-sheet details[open]').forEach(function(d) { d.removeAttribute('open'); });
   }
 
-  // 一次只能打开一个，展开时自动向上滚动对齐
+  // 一次只能打开一个二级菜单
   document.querySelectorAll('#menu-sheet details').forEach(function(detail) {
     detail.addEventListener('toggle', function() {
       if (this.open) {
         document.querySelectorAll('#menu-sheet details[open]').forEach(function(other) {
           if (other !== detail) other.removeAttribute('open');
         });
-
-        // 展开时平滑滚动对齐，确保展开出的子项完整显现
-        var sheet = document.getElementById('menu-sheet');
-        if (sheet) {
-          setTimeout(function() {
-            var lastChild = detail.querySelector('.menu-sheet__subrow:last-child') || detail;
-            lastChild.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-          }, 100);
-        }
       }
     });
   });

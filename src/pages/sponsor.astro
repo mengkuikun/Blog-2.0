@@ -70,11 +70,11 @@ const showSponsorsList = sponsorConfig.showSponsorsList !== false;
           
                         <!-- 二维码或链接 -->
                         {method.qrCode && (
-                          <div class="relative w-full max-w-[200px] aspect-square bg-white rounded-lg p-4 shadow-md mb-4">
+                          <div class="relative w-full max-w-[280px] sm:max-w-[300px] aspect-square rounded-2xl overflow-hidden shadow-md mb-4 bg-white dark:bg-neutral-800 border border-neutral-200/80 dark:border-neutral-700/80 group">
                             <img
                               src={url(method.qrCode)}
                               alt={`${method.name} ${i18n(I18nKey.scanToSponsor)}`}
-                              class="w-full h-full object-contain"
+                              class="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
                               loading="lazy"
                             />
                           </div>

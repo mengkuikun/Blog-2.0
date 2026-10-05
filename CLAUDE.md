@@ -697,6 +697,7 @@ return controller;
 | 样式中直接使用 `var(--radius-large)` | 项目全局 `--radius-large: 0` 被置零，组件外层会直接变成无圆角尖角直角（2026-10 post-intro-card 教训） | 移植或新建组件时显式指定圆角（如 `1rem` 或 `0.75rem`），禁止直接裸用 `var(--radius-large)` |
 | 在 standalone CSS 文件中滥用 `@apply dark:...` 或硬编码 `#000/#fff` | Tailwind v4 在独立 CSS 中默认将 `dark:` 编译为 `@media (prefers-color-scheme: dark)`，导致用户系统为暗色时，在博客亮色模式下仍强行应用白色文字（白底白字看不清） | 颜色统一使用 `var(--deep-text)` / `var(--btn-content)` 等设计令牌，暗色覆盖统一使用 `:root.dark` 选择器，严禁使用 `@apply dark:...` |
 | 在暗色模式下使用 `--primary` 作为背景时硬编码 `text-white`，或通过内联 `style="background-color: var(--primary)"` 绕过响应式暗色变体 | 本站 `:root.dark { --primary: oklch(0.98 0 0); }` 为高亮浅白天花板色，硬编码 `text-white` 直接导致"白底白字"不可见，且内联样式无法被 Tailwind `dark:` 覆写，深色遮罩下大白块极其突兀刺眼（2026-10 分享海报弹窗教训） | 统一使用 Tailwind 响应式类 `bg-(--primary) text-white dark:text-neutral-950 font-semibold`，暗色模式文字必须反相为深黑以维持高对比度，严禁内联写死色彩 |
+| 滚动/抽屉面板标题栏使用 `flex + position: absolute; left: 50%` 居中标题 | 父容器为 `position: sticky` 且外层有 `overflow-y: auto` 时，浏览器内核无法为绝对定位生成稳定包含块，导致标题脱离基准产生左右漂移或被左右按钮遮挡（2026-10 移动端菜单抽屉教训） | 统一使用 CSS Grid 三列布局 `grid-template-columns: 1fr auto 1fr`（左：`justify-self: start`，中：`justify-self: center`，右：`justify-self: end`），在文档流内部自然对称居中，严禁依赖 absolute 居中 |
 
 ---
 
