@@ -577,6 +577,8 @@
 		background: oklch(0 0 0 / 0.45);
 		opacity: 0;
 		transition: opacity 0.25s ease-out;
+		touch-action: none;
+		overscroll-behavior: contain;
 	}
 
 	.navbar-profile-dropdown.is-open .navbar-profile-mask {
@@ -594,9 +596,13 @@
 		max-width: none;
 		max-height: min(85vh, 44rem);
 		overflow-y: auto;
+		-webkit-overflow-scrolling: touch;
+		overscroll-behavior: contain;
+		overscroll-behavior-y: contain;
 		border-radius: 1rem;
 		transform: translateY(calc(100% + 1rem));
-		transition: transform 0.3s cubic-bezier(0.32, 0.72, 0.29, 1);
+		opacity: 0;
+		transition: transform 0.28s cubic-bezier(0.32, 0.72, 0.29, 1), opacity 0.22s ease;
 	}
 
 	.navbar-profile-card::before {
@@ -605,11 +611,86 @@
 
 	.navbar-profile-dropdown.is-open .navbar-profile-card {
 		transform: translateY(0);
+		opacity: 1;
 	}
 
 	.navbar-profile-card__left {
 		width: auto;
 	}
+
+	/* 移动端专属吸顶操作栏 — Grid 三列对称居中（左：返回 | 中：标题 | 右：关闭） */
+	.navbar-profile-card__mobile-header {
+		display: grid;
+		grid-template-columns: 1fr auto 1fr;
+		align-items: center;
+		padding-bottom: 0.5rem;
+		border-bottom: 1px solid color-mix(in oklch, var(--deep-text) 8%, transparent);
+		margin-bottom: 0.25rem;
+	}
+
+	.navbar-profile-card__back-btn {
+		justify-self: start;
+		display: inline-flex;
+		align-items: center;
+		gap: 0.25rem;
+		padding: 0.25rem 0.65rem 0.25rem 0.45rem;
+		font-size: 0.8rem;
+		font-weight: 600;
+		color: var(--deep-text);
+		background: color-mix(in oklch, var(--deep-text) 6%, transparent);
+		border: 1px solid color-mix(in oklch, var(--deep-text) 12%, transparent);
+		border-radius: 9999px;
+		cursor: pointer;
+		transition: background-color 0.15s ease, color 0.15s ease, transform 0.15s ease;
+	}
+
+	.navbar-profile-card__back-btn:hover {
+		background: color-mix(in oklch, var(--deep-text) 10%, transparent);
+		color: var(--primary);
+	}
+
+	.navbar-profile-card__back-btn:active {
+		transform: scale(0.96) translateX(-2px);
+	}
+
+	.navbar-profile-card__mobile-title {
+		justify-self: center;
+		font-size: 0.875rem;
+		font-weight: 700;
+		color: var(--deep-text);
+		letter-spacing: 0.02em;
+		user-select: none;
+		pointer-events: none;
+	}
+
+	.navbar-profile-card__close-btn {
+		justify-self: end;
+		display: inline-flex;
+		align-items: center;
+		justify-content: center;
+		width: 1.85rem;
+		height: 1.85rem;
+		padding: 0;
+		color: var(--deep-text);
+		background: color-mix(in oklch, var(--deep-text) 6%, transparent);
+		border: none;
+		border-radius: 9999px;
+		cursor: pointer;
+		opacity: 0.75;
+		transition: opacity 0.15s ease, background-color 0.15s ease, transform 0.15s ease;
+	}
+
+	.navbar-profile-card__close-btn:hover,
+	.navbar-profile-card__close-btn:active {
+		opacity: 1;
+		background: color-mix(in oklch, var(--deep-text) 12%, transparent);
+		transform: scale(0.94);
+	}
+}
+
+/* 桌面端隐藏移动端吸顶操作栏 */
+.navbar-profile-card__mobile-header {
+	display: none;
 }
 
 @media (prefers-reduced-motion: reduce) {

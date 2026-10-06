@@ -699,6 +699,8 @@ return controller;
 | 在暗色模式下使用 `--primary` 作为背景时硬编码 `text-white`，或通过内联 `style="background-color: var(--primary)"` 绕过响应式暗色变体 | 本站 `:root.dark { --primary: oklch(0.98 0 0); }` 为高亮浅白天花板色，硬编码 `text-white` 直接导致"白底白字"不可见，且内联样式无法被 Tailwind `dark:` 覆写，深色遮罩下大白块极其突兀刺眼（2026-10 分享海报弹窗教训） | 统一使用 Tailwind 响应式类 `bg-(--primary) text-white dark:text-neutral-950 font-semibold`，暗色模式文字必须反相为深黑以维持高对比度，严禁内联写死色彩 |
 | 滚动/抽屉面板标题栏使用 `flex + position: absolute; left: 50%` 居中标题 | 父容器为 `position: sticky` 且外层有 `overflow-y: auto` 时，浏览器内核无法为绝对定位生成稳定包含块，导致标题脱离基准产生左右漂移或被左右按钮遮挡（2026-10 移动端菜单抽屉教训） | 统一使用 CSS Grid 三列布局 `grid-template-columns: 1fr auto 1fr`（左：`justify-self: start`，中：`justify-self: center`，右：`justify-self: end`），在文档流内部自然对称居中，严禁依赖 absolute 居中 |
 | 高频鼠标跟随浮层使用 `left/top` 定位并在 `mousemove` 中调用 `getBoundingClientRect()` | 修改几何属性破坏 GPU 合成，引发高频 Layout Thrashing；且在 Edge 等浏览器下导致带大阴影的浮层每帧在 CPU 重新光栅化，造成剧烈掉帧卡顿（2026-10 友链大图教训） | 严格解耦为外层纯 `translate3d` 硬件加速位移（零 transition）+ 内层负责视觉外观与缩放动效；通过 rAF 帧率对齐与进入时尺寸缓存，绝不在 mousemove 中触发重排 |
+| 移动端二级抽屉/卡片在回退时无来源上下文直接销毁所有浮层 | 用户从主抽屉（如菜单）进入子卡片（如资料卡）后，点击返回或滑动手势直接彻底退出到正文，打断连续浏览心智（2026-10 移动端资料卡与菜单抽屉教训） | 控制器必须跟踪来源上下文（`openedFrom: "menu"`），回退时错峰调度（退场动画运行 160ms 后派发全局事件重新唤起父抽屉），保持抽屉层级自然退回，关闭按钮保留彻底退出能力 |
+| 移动端抽屉/卡片未配置滚动边界隔离与双层滚动锁定 | 用户在抽屉或遮罩区域滑动时，底层正文页面跟着晃动或被拖走，造成严重滚动穿透与阅读位置丢失（2026-10 移动端菜单与资料卡教训） | 抽屉容器必须声明 `overscroll-behavior: contain;`，遮罩必须声明 `touch-action: none;` 并拦截 `touchmove`；同时对 `documentElement` 与 `body` 双层施加 `overflow: hidden`，多浮层流转时保持锁定延续 |
 
 ---
 
