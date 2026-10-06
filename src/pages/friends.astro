@@ -241,18 +241,42 @@ const description = i18n(I18nKey.friendsDescription);
     <Comment post={friendsPost} customPath="/friends/" />
   </div>
 
-  <!-- 友链悬浮大图预览 — portal 单例，光标跟随与视口边缘自适应（仅桌面 hover） -->
+  <!-- 友链悬浮大图预览 — portal 单例，GPU 硬件加速与视口边缘自适应（仅桌面 hover） -->
   <script is:inline>
     (function() {
       var OFFSET = 16;
       var PADDING = 8;
       var hideTimer = null;
-      var lastMouseX = 0;
-      var lastMouseY = 0;
       var abortCtrl = null;
+      var rafId = null;
+
+      // 视口与浮层尺寸缓存（避免在 mousemove 中调用 getBoundingClientRect 触发重排）
+      var cachedVw = 0;
+      var cachedVh = 0;
+      var cachedW = 0;
+      var cachedH = 0;
+      var currentMouseX = 0;
+      var currentMouseY = 0;
 
       function canHover() {
         return window.matchMedia("(hover: hover) and (pointer: fine)").matches;
+      }
+
+      function updateViewportCache() {
+        cachedVw = window.innerWidth;
+        cachedVh = window.innerHeight;
+      }
+
+      function updateSizeCache() {
+        var el = document.getElementById("friend-preview");
+        if (!el) return;
+        var card = el.firstElementChild;
+        if (!card) return;
+        var rect = card.getBoundingClientRect();
+        if (rect.width > 0 && rect.height > 0) {
+          cachedW = rect.width;
+          cachedH = rect.height;
+        }
       }
 
       function ensurePreview() {
@@ -262,15 +286,23 @@ const description = i18n(I18nKey.friendsDescription);
         el.id = "friend-preview";
         el.setAttribute("aria-hidden", "true");
         el.hidden = true;
+
+        var card = document.createElement("div");
+        card.className = "friend-preview-card";
+
         var img = document.createElement("img");
         img.alt = "";
         img.decoding = "async";
         img.addEventListener("load", function() {
+          // 图片载入后重新校准实际尺寸并刷新当前位置
+          updateSizeCache();
           if (el.classList.contains("is-visible")) {
-            updatePosition(lastMouseX, lastMouseY);
+            applyPosition(currentMouseX, currentMouseY);
           }
         });
-        el.appendChild(img);
+
+        card.appendChild(img);
+        el.appendChild(card);
         document.body.appendChild(el);
         return el;
       }
@@ -279,33 +311,51 @@ const description = i18n(I18nKey.friendsDescription);
         return document.getElementById("friend-preview");
       }
 
-      function updatePosition(clientX, clientY) {
+      function applyPosition(clientX, clientY) {
         var el = getPreview();
         if (!el) return;
-        var rect = el.getBoundingClientRect();
-        var vw = window.innerWidth;
-        var vh = window.innerHeight;
+
+        var vw = cachedVw || window.innerWidth;
+        var vh = cachedVh || window.innerHeight;
+        var w = cachedW || 380;
+        var h = cachedH || 240;
+
         var left = clientX + OFFSET;
         var top = clientY + OFFSET;
 
         // 超出右侧视口时翻转至光标左侧
-        if (left + rect.width > vw - PADDING) {
-          left = clientX - rect.width - OFFSET;
+        if (left + w > vw - PADDING) {
+          left = clientX - w - OFFSET;
         }
         if (left < PADDING) {
           left = PADDING;
         }
 
         // 超出底部视口时贴紧下边缘向上延伸
-        if (top + rect.height > vh - PADDING) {
-          top = Math.max(PADDING, vh - rect.height - PADDING);
+        if (top + h > vh - PADDING) {
+          top = Math.max(PADDING, vh - h - PADDING);
         }
         if (top < PADDING) {
           top = PADDING;
         }
 
-        el.style.left = left + "px";
-        el.style.top = top + "px";
+        // 硬件加速位移（translate3d），跳过 Layout 和 Paint，由 GPU 合成线程直接呈现
+        el.style.transform = "translate3d(" + Math.round(left) + "px, " + Math.round(top) + "px, 0)";
+      }
+
+      function onRafFrame() {
+        rafId = null;
+        var el = getPreview();
+        if (!el || !el.classList.contains("is-visible")) return;
+        applyPosition(currentMouseX, currentMouseY);
+      }
+
+      function queuePositionUpdate(clientX, clientY) {
+        currentMouseX = clientX;
+        currentMouseY = clientY;
+        if (!rafId) {
+          rafId = requestAnimationFrame(onRafFrame);
+        }
       }
 
       function showPreview(card, clientX, clientY) {
@@ -324,11 +374,15 @@ const description = i18n(I18nKey.friendsDescription);
           hideTimer = null;
         }
 
+        updateViewportCache();
         el.hidden = false;
         el.classList.add("is-visible");
-        lastMouseX = clientX;
-        lastMouseY = clientY;
-        updatePosition(clientX, clientY);
+
+        // 首次激活读取一次尺寸缓存并定位
+        updateSizeCache();
+        currentMouseX = clientX;
+        currentMouseY = clientY;
+        applyPosition(clientX, clientY);
       }
 
       function hidePreview() {
@@ -352,6 +406,10 @@ const description = i18n(I18nKey.friendsDescription);
           clearTimeout(hideTimer);
           hideTimer = null;
         }
+        if (rafId) {
+          cancelAnimationFrame(rafId);
+          rafId = null;
+        }
         var el = getPreview();
         if (el) {
           el.remove();
@@ -371,6 +429,9 @@ const description = i18n(I18nKey.friendsDescription);
         abortCtrl = new AbortController();
         var signal = abortCtrl.signal;
 
+        updateViewportCache();
+        window.addEventListener("resize", updateViewportCache, { signal: signal, passive: true });
+
         document.addEventListener("mouseover", function(e) {
           var card = e.target && e.target.closest ? e.target.closest(".friend-card[data-screenshot]") : null;
           if (!card || card.classList.contains("friend-card--no-shot")) return;
@@ -389,15 +450,8 @@ const description = i18n(I18nKey.friendsDescription);
         document.addEventListener("mousemove", function(e) {
           var el = getPreview();
           if (!el || !el.classList.contains("is-visible")) return;
-          // 防御兜底：如果卡片已不在当前 DOM 中，立即销毁退出
-          if (!document.querySelector(".friend-card")) {
-            destroyPreview();
-            return;
-          }
-          lastMouseX = e.clientX;
-          lastMouseY = e.clientY;
-          updatePosition(e.clientX, e.clientY);
-        }, { signal: signal });
+          queuePositionUpdate(e.clientX, e.clientY);
+        }, { signal: signal, passive: true });
 
         window.addEventListener("scroll", hidePreview, { signal: signal, passive: true });
       }
@@ -482,18 +536,34 @@ const description = i18n(I18nKey.friendsDescription);
         cards.forEach(function(card) { io.observe(card); });
       }
 
-      /* --- 鼠标跟随光晕（事件委托到网格容器，一次绑定） --- */
+      /* --- 鼠标跟随光晕（事件委托到网格容器，rAF 节流调度） --- */
       function bindGlow() {
         document.querySelectorAll("[data-friends-grid]").forEach(function(grid) {
           if (grid.dataset.glowBound) return;
           grid.dataset.glowBound = "1";
+          var glowRaf = null;
+          var currentTargetCard = null;
+          var lastClientX = 0;
+          var lastClientY = 0;
+
+          function renderGlow() {
+            glowRaf = null;
+            if (!currentTargetCard) return;
+            var rect = currentTargetCard.getBoundingClientRect();
+            currentTargetCard.style.setProperty("--mouse-x", (lastClientX - rect.left) + "px");
+            currentTargetCard.style.setProperty("--mouse-y", (lastClientY - rect.top) + "px");
+          }
+
           grid.addEventListener("mousemove", function(e) {
             var card = e.target.closest(".friend-card");
             if (!card) return;
-            var rect = card.getBoundingClientRect();
-            card.style.setProperty("--mouse-x", (e.clientX - rect.left) + "px");
-            card.style.setProperty("--mouse-y", (e.clientY - rect.top) + "px");
-          });
+            currentTargetCard = card;
+            lastClientX = e.clientX;
+            lastClientY = e.clientY;
+            if (!glowRaf) {
+              glowRaf = requestAnimationFrame(renderGlow);
+            }
+          }, { passive: true });
         });
       }
 

@@ -1,5 +1,6 @@
 /* ============================================
-   友链悬浮大图预览 — portal 单例，光标跟随相框预览大图
+   友链悬浮大图预览 — portal 单例，GPU 硬件加速光标跟随
+   外层只负责 translate3d 纯硬件位移，内层负责视觉外观与缩放淡入
    设计参考 MmzMing 博客：深浅色自适应边框、相框内衬与同心圆角
    ============================================ */
 
@@ -8,6 +9,12 @@
 	left: 0;
 	top: 0;
 	z-index: 60;
+	pointer-events: none;
+	will-change: transform;
+	/* 外层绝对不加任何 transition，保证光标跟随 0 延迟、0 掉帧 */
+}
+
+.friend-preview-card {
 	max-width: min(28rem, 80vw);
 	max-height: min(24rem, 70vh);
 	padding: 0.5rem;
@@ -15,23 +22,23 @@
 	border-radius: 1rem;
 	background: var(--page-bg);
 	box-shadow: 0 8px 30px rgba(0, 0, 0, 0.2);
-	pointer-events: none;
 	opacity: 0;
 	transform: scale(0.92);
+	transform-origin: top left;
 	transition: opacity 0.18s ease, transform 0.18s ease;
 	will-change: transform, opacity;
 }
 
-:root.dark #friend-preview {
+:root.dark .friend-preview-card {
 	box-shadow: 0 12px 36px rgba(0, 0, 0, 0.6), 0 0 0 1px rgba(255, 255, 255, 0.08);
 }
 
-#friend-preview.is-visible {
+#friend-preview.is-visible .friend-preview-card {
 	opacity: 1;
 	transform: scale(1);
 }
 
-#friend-preview img {
+.friend-preview-card img {
 	display: block;
 	max-width: 100%;
 	max-height: calc(min(24rem, 70vh) - 1rem);
@@ -48,12 +55,13 @@
 
 /* 尊重减少动画偏好：仅淡入，不缩放 */
 @media (prefers-reduced-motion: reduce) {
-	#friend-preview {
+	.friend-preview-card {
 		transform: none;
 		transition: opacity 150ms ease;
 	}
 
-	#friend-preview.is-visible {
+	#friend-preview.is-visible .friend-preview-card {
 		transform: none;
 	}
 }
+
