@@ -96,15 +96,28 @@ import { Icon } from "astro-icon/components";
 		};
 	}
 
+	function lockMobileViewportScroll() {
+		document.documentElement.style.overflow = "hidden";
+		document.body.style.overflow = "hidden";
+	}
+
+	function unlockMobileViewportScroll() {
+		var profilePanel = document.querySelector("[data-navbar-profile-panel]");
+		if (profilePanel && profilePanel.classList.contains("is-open")) return;
+		document.documentElement.style.overflow = "";
+		document.body.style.overflow = "";
+	}
+
 	function openMenuSheet() {
 		var els = getMenuSheetElements();
 		els.sheet?.classList.add("is-open");
 		els.overlay?.classList.add("is-open");
 		els.overlay?.setAttribute("aria-hidden", "false");
 		setMenuOpenState(true);
+		lockMobileViewportScroll();
 	}
 
-	function closeMenuSheet() {
+	function closeMenuSheet(options) {
 		var els = getMenuSheetElements();
 		if (els.sheet) {
 			els.sheet.classList.remove("is-open");
@@ -113,6 +126,9 @@ import { Icon } from "astro-icon/components";
 		els.overlay?.classList.remove("is-open");
 		els.overlay?.setAttribute("aria-hidden", "true");
 		setMenuOpenState(false);
+		if (!options || !options.keepScrollLock) {
+			unlockMobileViewportScroll();
+		}
 	}
 
 	menuBtn?.addEventListener("click", function(e) {
@@ -135,14 +151,21 @@ import { Icon } from "astro-icon/components";
 		els.overlay?.addEventListener("click", function() {
 			closeMenuSheet();
 		});
+		els.overlay?.addEventListener("touchmove", function(e) {
+			e.preventDefault();
+		}, { passive: false });
 		document.getElementById("menu-sheet-profile-btn")?.addEventListener("click", function(e) {
 			e.stopPropagation();
-			closeMenuSheet();
+			closeMenuSheet({ keepScrollLock: true });
 			window.setTimeout(function() {
-				window.dispatchEvent(new CustomEvent("navbar-profile:toggle"));
+				window.dispatchEvent(new CustomEvent("navbar-profile:open", { detail: { from: "menu" } }));
 			}, 150);
 		});
 	}
+
+	window.addEventListener("mobile-menu:open", function() {
+		openMenuSheet();
+	});
 
 	if (document.readyState === "loading") {
 		document.addEventListener("DOMContentLoaded", bindMenuSheetCloseEvents);
@@ -196,12 +219,14 @@ import { Icon } from "astro-icon/components";
 
 	document.addEventListener("astro:page-load", function() {
 		closeMenuSheet();
+		unlockMobileViewportScroll();
 		lastScrollY = window.scrollY;
 		dockEl.classList.remove("is-hidden");
 	});
 
 	document.addEventListener("swup:content:replaced", function() {
 		closeMenuSheet();
+		unlockMobileViewportScroll();
 		bindMenuSheetCloseEvents();
 		lastScrollY = window.scrollY;
 		dockEl.classList.remove("is-hidden");

@@ -109,6 +109,28 @@ const profileCardConfig = JSON.stringify({
 <div class="navbar-profile-dropdown" data-navbar-profile-panel>
 	<div class="navbar-profile-mask" data-profile-mask aria-hidden="true"></div>
 	<div class="navbar-profile-card" data-profile-card aria-busy="true" data-profile-config={profileCardConfig}>
+		<!-- 移动端专属吸顶操作栏（桌面端隐藏）：支持一键返回菜单、标题与直接关闭 -->
+		<div class="navbar-profile-card__mobile-header" data-profile-mobile-header>
+			<button
+				type="button"
+				class="navbar-profile-card__back-btn"
+				data-profile-back-btn
+				aria-label="返回菜单"
+			>
+				<Icon name="material-symbols:arrow-back-rounded" is:inline class="text-base" />
+				<span data-profile-back-label>返回菜单</span>
+			</button>
+			<span class="navbar-profile-card__mobile-title">站长资料</span>
+			<button
+				type="button"
+				class="navbar-profile-card__close-btn"
+				data-profile-close-btn
+				aria-label="关闭"
+			>
+				<Icon name="material-symbols:close-rounded" is:inline class="text-base" />
+			</button>
+		</div>
+
 		<!-- 左栏：身份 + 社交 + 其他站点 + 文章热力图 -->
 		<div class="navbar-profile-card__left">
 			<a class="navbar-profile-card__identity" href={url(aboutLink.url)} aria-label={aboutLink.name}>

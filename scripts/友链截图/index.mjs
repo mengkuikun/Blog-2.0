@@ -44,13 +44,15 @@ if (argId && !entries.length) {
 fs.mkdirSync(OUT_DIR, { recursive: true });
 
 const browser = await chromium.launch();
-// context 级伪装真实浏览器（UA/语言/时区）；2 倍像素截图再压 640 宽，文字更清晰
+// context 级伪装真实浏览器（UA/语言/时区）；
+// 视口采用 2880x1440（2:1 宽屏），等效于标准 1080P 下约 67% 浏览器缩放，
+// 完美实现元素紧凑精致、字号协调对齐的无白边全景渲染，再超采样压至 900x450
 const context = await browser.newContext({
 	userAgent: UA,
 	locale: "zh-CN",
 	timezoneId: "Asia/Shanghai",
-	viewport: { width: 1280, height: 800 },
-	deviceScaleFactor: 2,
+	viewport: { width: 2880, height: 1440 },
+	deviceScaleFactor: 1,
 });
 
 // 单次截图：load 后先等网络空闲（覆盖二次导航/客户端路由接管/开屏动画，
@@ -66,8 +68,21 @@ async function takeShot(entry) {
 			.evaluate(() => Promise.race([document.fonts.ready, new Promise((r) => setTimeout(r, 5000))]).then(() => true))
 			.catch(() => {});
 		await page.waitForTimeout(2000);
+		// 移除常见的 Cookie 提示、GDPR 遮罩等固定悬浮弹窗，避免遮挡页面核心内容
+		await page
+			.evaluate(() => {
+				document.querySelectorAll("*").forEach((el) => {
+					const s = window.getComputedStyle(el);
+					const isFixed = s.position === "fixed" || s.position === "sticky";
+					const name = ((el.id || "") + " " + (el.className || "")).toLowerCase();
+					if (isFixed && /cookie|consent|banner|gdpr/i.test(name)) {
+						el.remove();
+					}
+				});
+			})
+			.catch(() => {});
 		const buf = await page.screenshot({ type: "png" });
-		return await sharp(buf).resize({ width: 640 }).webp({ quality: 75 }).toBuffer();
+		return await sharp(buf).resize({ width: 900, height: 450 }).webp({ quality: 85 }).toBuffer();
 	} finally {
 		await page.close();
 	}

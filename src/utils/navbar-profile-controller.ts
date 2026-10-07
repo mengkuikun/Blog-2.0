@@ -68,6 +68,10 @@ export interface ProfileRefs {
 	};
 	postsTitle: HTMLElement | null;
 	postList: HTMLElement | null;
+	mobileHeader: HTMLElement | null;
+	backBtn: HTMLButtonElement | null;
+	closeBtn: HTMLButtonElement | null;
+	backLabel: HTMLElement | null;
 }
 
 export interface EventElements {
@@ -95,8 +99,20 @@ let selectedCellKey: string | null = null;
 let siteListPinned = false;
 let closeTimer: number | null = null;
 let openedAsMobile = false;
-let previousBodyOverflow = "";
+let openedFrom: string | null = null;
 let counterFrames: number[] = [];
+
+function lockMobileScroll(): void {
+	document.documentElement.style.overflow = "hidden";
+	document.body.style.overflow = "hidden";
+}
+
+function unlockMobileScroll(): void {
+	const menuSheet = document.getElementById("menu-sheet");
+	if (menuSheet?.classList.contains("is-open")) return;
+	document.documentElement.style.overflow = "";
+	document.body.style.overflow = "";
+}
 
 function isMobileViewport(): boolean {
 	return window.matchMedia(MOBILE_MEDIA).matches;
@@ -183,6 +199,10 @@ function collectRefs(
 		},
 		postsTitle: card.querySelector("[data-profile-posts-title]"),
 		postList: card.querySelector("[data-profile-post-list]"),
+		mobileHeader: card.querySelector("[data-profile-mobile-header]"),
+		backBtn: card.querySelector("[data-profile-back-btn]"),
+		closeBtn: card.querySelector("[data-profile-close-btn]"),
+		backLabel: card.querySelector("[data-profile-back-label]"),
 	};
 }
 
@@ -604,34 +624,38 @@ function updateDesktopPosition(): void {
 	}
 }
 
-export function open(): void {
+export function open(options?: { from?: string }): void {
 	if (!refs) return;
 	cancelCloseTimer();
 	if (!refs.panel.classList.contains("is-open")) {
 		ensureData();
 		openedAsMobile = isMobileViewport();
+		openedFrom = options?.from ?? null;
+		if (refs.backLabel) {
+			refs.backLabel.textContent = openedFrom === "menu" ? "返回菜单" : "返回";
+		}
 		if (!openedAsMobile) {
 			updateDesktopPosition();
 		}
 		refs.panel.classList.add("is-open");
 		playEntranceAnimation();
 		if (openedAsMobile) {
-			previousBodyOverflow = document.body.style.overflow;
-			document.body.style.overflow = "hidden";
+			lockMobileScroll();
 		}
 	}
 }
 
-export function close(): void {
+export function close(options?: { keepScrollLock?: boolean }): void {
 	if (!refs) return;
 	cancelCloseTimer();
 	if (refs.panel.classList.contains("is-open")) {
 		refs.panel.classList.remove("is-open");
 		cancelAnimations();
-		if (openedAsMobile) {
-			document.body.style.overflow = previousBodyOverflow;
+		if (openedAsMobile && !options?.keepScrollLock) {
+			unlockMobileScroll();
 		}
 		openedAsMobile = false;
+		openedFrom = null;
 		clearCellSelection();
 		siteListPinned = false;
 		updateSiteTriggerPressed();
@@ -639,17 +663,38 @@ export function close(): void {
 	}
 }
 
-export function toggle(): void {
+export function back(): void {
+	if (!refs) return;
+	const shouldReturnToMenu = openedAsMobile && openedFrom === "menu";
+	close({ keepScrollLock: shouldReturnToMenu });
+	if (shouldReturnToMenu) {
+		window.setTimeout(() => {
+			window.dispatchEvent(new CustomEvent("mobile-menu:open"));
+		}, 160);
+	}
+}
+
+export function toggle(options?: { from?: string }): void {
 	if (refs?.panel.classList.contains("is-open")) {
 		close();
 	} else {
-		open();
+		open(options);
 	}
 }
 
 function bindEvents(): void {
 	if (!refs) return;
-	const { panel, card, mask, heatmap, siteTriggers } = refs;
+	const { panel, card, mask, heatmap, siteTriggers, backBtn, closeBtn } = refs;
+
+	backBtn?.addEventListener("click", (e) => {
+		e.stopPropagation();
+		back();
+	});
+
+	closeBtn?.addEventListener("click", (e) => {
+		e.stopPropagation();
+		close();
+	});
 
 	const bindHoverSource = () => {
 		const leftSeg =
@@ -676,7 +721,7 @@ function bindEvents(): void {
 			if (!isMobileViewport()) scheduleClose();
 		});
 
-		leftSeg.addEventListener("focusin", open);
+		leftSeg.addEventListener("focusin", () => open());
 		leftSeg.addEventListener("focusout", (e: FocusEvent) => {
 			const related = e.relatedTarget;
 			if (
@@ -707,7 +752,17 @@ function bindEvents(): void {
 		scheduleClose();
 	});
 
-	mask?.addEventListener("click", close);
+	mask?.addEventListener("click", () => {
+		back();
+	});
+
+	mask?.addEventListener(
+		"touchmove",
+		(e) => {
+			e.preventDefault();
+		},
+		{ passive: false },
+	);
 
 	// 滚动时立即收起面板（桌面端 fixed 锚点跟随）
 	window.addEventListener(
@@ -720,11 +775,11 @@ function bindEvents(): void {
 		{ passive: true },
 	);
 
-	// Esc 关闭
+	// Esc 关闭 / 回退
 	document.addEventListener("keydown", (e) => {
 		if (e.key !== "Escape" || !panel.classList.contains("is-open")) return;
 		e.preventDefault();
-		close();
+		back();
 	});
 
 	// 「其他站点」按钮
@@ -748,7 +803,7 @@ function bindEvents(): void {
 		}
 	});
 
-	// 移动端下滑手势
+	// 移动端下滑手势回退
 	let touchStartY: number | null = null;
 	card.addEventListener(
 		"touchstart",
@@ -765,7 +820,7 @@ function bindEvents(): void {
 			const delta = (e.touches[0]?.clientY ?? 0) - touchStartY;
 			if (delta > 64) {
 				touchStartY = null;
-				close();
+				back();
 			}
 		},
 		{ passive: true },
@@ -780,15 +835,30 @@ function bindEvents(): void {
 	);
 
 	// 外部触发事件
-	window.addEventListener(NAVBAR_PROFILE_TOGGLE_EVENT, () => toggle());
+	window.addEventListener(NAVBAR_PROFILE_TOGGLE_EVENT, (e: Event) => {
+		const detail = (e as CustomEvent).detail;
+		toggle(detail);
+	});
+
+	window.addEventListener("navbar-profile:open", (e: Event) => {
+		const detail = (e as CustomEvent).detail;
+		open(detail);
+	});
 
 	// Swup 导航 / pageshow 触发时关闭卡片，并重新连接 leftSeg
-	document.addEventListener("swup:visit:start", () => close());
+	document.addEventListener("swup:visit:start", () => {
+		close();
+		unlockMobileScroll();
+	});
 	document.addEventListener("swup:content:replaced", () => {
 		close();
+		unlockMobileScroll();
 		bindHoverSource();
 	});
-	window.addEventListener("pageshow", () => close());
+	window.addEventListener("pageshow", () => {
+		close();
+		unlockMobileScroll();
+	});
 }
 
 export function initNavbarProfileCard(): void {
