@@ -3,6 +3,7 @@ import { BANNER_HEIGHT_HOME } from "@/constants/constants";
 import { pathsEqual, url } from "@/utils/url-utils";
 import { initCustomScrollbar } from "./scrollbar-utils";
 import { updateSidebarComponentsVisibility } from "./sidebar-utils";
+import { updateMainGridCols } from "./grid-layout-utils";
 
 declare global {
 	interface Window {
@@ -93,25 +94,32 @@ export function initSwupLifecycle(): void {
 			const mainGrid = document.getElementById("main-grid");
 			if (mainGrid) {
 				const gridCarrier = document.getElementById("grid-class-carrier");
-				const defaultGridClass =
-					gridCarrier?.getAttribute("data-grid-class") ||
-					"grid-cols-1 md:grid-cols-[17.5rem_1fr]";
+				const carrierGridClass = gridCarrier?.getAttribute("data-grid-class");
 
-				// 1. Update grid columns (sidebar visibility controlled by CSS .lg\:is-home)
-				[
-					"grid-cols-1",
-					"md:grid-cols-[17.5rem_1fr]",
-					"md:grid-cols-[1fr_17.5rem]",
-					"xl:grid-cols-[17.5rem_1fr_17.5rem]",
-				].forEach((cls) => {
-					mainGrid.classList.remove(cls);
-				});
 				if (isHome) {
+					[
+						"grid-cols-1",
+						"md:grid-cols-[17.5rem_1fr]",
+						"md:grid-cols-[1fr_17.5rem]",
+						"xl:grid-cols-[17.5rem_1fr_17.5rem]",
+					].forEach((cls) => {
+						mainGrid.classList.remove(cls);
+					});
 					mainGrid.classList.add("grid-cols-1");
-				} else {
-					defaultGridClass.split(" ").forEach((cls) => {
+				} else if (carrierGridClass) {
+					[
+						"grid-cols-1",
+						"md:grid-cols-[17.5rem_1fr]",
+						"md:grid-cols-[1fr_17.5rem]",
+						"xl:grid-cols-[17.5rem_1fr_17.5rem]",
+					].forEach((cls) => {
+						mainGrid.classList.remove(cls);
+					});
+					carrierGridClass.split(" ").forEach((cls) => {
 						if (cls) mainGrid.classList.add(cls);
 					});
+				} else {
+					updateMainGridCols();
 				}
 
 				// 2. Remove max-width and padding constraints on home page
