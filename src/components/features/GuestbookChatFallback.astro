@@ -1,27 +1,18 @@
 ---
+import I18nKey from "@/i18n/i18nKey";
+import { i18n } from "@/i18n/translation";
+
 const skeletonRows = Array.from({ length: 6 });
 ---
 
-<section class="guestbook-chat guestbook-chat--fallback" aria-label="留言板" aria-busy="true">
-	<header class="guestbook-chat__header">
-		<div class="guestbook-chat__channel">
-			<div>
-				<div class="guestbook-chat__title-row">
-					<h2>留言板</h2>
-					<span>· -- 条留言</span>
-					<div class="guestbook-chat__status">
-						<span></span>
-						正在连接留言服务
-					</div>
-				</div>
-			</div>
-		</div>
-		<div class="guestbook-chat__fallback-action" aria-hidden="true"></div>
-	</header>
-
+<section
+	class="guestbook-chat guestbook-chat--fallback"
+	aria-label={i18n(I18nKey.gbTitle)}
+	aria-busy="true"
+>
 	<div class="guestbook-chat__workspace">
 		<div class="guestbook-chat__conversation">
-			<div class="guestbook-chat__loading" aria-label="正在加载聊天消息">
+			<div class="guestbook-chat__loading" aria-label={i18n(I18nKey.gbLoadingAria)}>
 				{skeletonRows.map((_, index) => (
 					<div class:list={["guestbook-chat__skeleton", { "is-admin": index % 3 === 2 }]}>
 						<div class="guestbook-chat__skeleton-avatar"></div>
@@ -34,35 +25,22 @@ const skeletonRows = Array.from({ length: 6 });
 				))}
 			</div>
 
-			<footer class="guestbook-chat__fallback-composer" aria-hidden="true">
-				<div class="guestbook-chat__fallback-identities">
-					<div><span></span></div>
-					<div><span></span></div>
-					<div><span></span></div>
-				</div>
-				<div class="guestbook-chat__fallback-editor">
-					<div class="guestbook-chat__fallback-resize-handle"></div>
-					<div class="guestbook-chat__fallback-textarea"></div>
-					<div class="guestbook-chat__fallback-toolbar">
-						<span class="guestbook-chat__fallback-tool"></span>
-						<div>
-							<span class="guestbook-chat__fallback-count"></span>
-							<span class="guestbook-chat__fallback-login"></span>
-							<span class="guestbook-chat__fallback-send"></span>
+			<div class="guestbook-chat__composer-area">
+				<footer class="guestbook-chat__fallback-composer" aria-hidden="true">
+					<div class="guestbook-chat__fallback-editor">
+						<div class="guestbook-chat__fallback-resize-handle"></div>
+						<div class="guestbook-chat__fallback-textarea"></div>
+						<div class="guestbook-chat__fallback-toolbar">
+							<span class="guestbook-chat__fallback-tool"></span>
+							<div>
+								<span class="guestbook-chat__fallback-count"></span>
+								<span class="guestbook-chat__fallback-login"></span>
+								<span class="guestbook-chat__fallback-send"></span>
+							</div>
 						</div>
 					</div>
-				</div>
-			</footer>
-		</div>
-
-		<aside class="guestbook-chat__sidebar guestbook-chat__fallback-sidebar" aria-hidden="true">
-			<div class="guestbook-chat__fallback-panel-title"></div>
-			<div class="guestbook-chat__fallback-panel-copy"></div>
-			<div class="guestbook-chat__fallback-member-list">
-				{skeletonRows.slice(0, 5).map(() => (
-					<div><span></span><i></i></div>
-				))}
+				</footer>
 			</div>
-		</aside>
+		</div>
 	</div>
 </section>

@@ -44,6 +44,12 @@ export interface GuestbookChatMessage {
 	isAdmin: boolean;
 	replyToId?: string;
 	replyToNick?: string;
+	/** 所在线程的根评论 ID，回复子评论时作为 rid 提交 */
+	rootId?: number;
+	/** 仅本地未发送成功的消息使用，重发时据此还原 pid 目标 */
+	replyTargetId?: string;
+	/** 改用 pid 之前写进正文的引用标记，编辑时需原样保留 */
+	legacyReplyMarker?: string;
 	status?: string;
 	localState?: GuestbookMessageLocalState;
 	failureReason?: string;

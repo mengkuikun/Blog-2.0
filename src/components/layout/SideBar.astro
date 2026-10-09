@@ -119,8 +119,12 @@ const getAnimationDelay = (index: number): string => {
 	return `${index * ANIMATION_DELAY_UNIT}ms`;
 };
 
-// 判断当前页面是否为文章页面（服务端渲染时确定）
-const isPostPage = Astro.url.pathname.includes("/posts/");
+// 判断当前页面是否为文章页面（服务端渲染时确定，严格排除文章列表页与分页）
+const currentPath = Astro.url.pathname.replace(/\/+$/, "");
+const isPostPage =
+	currentPath !== "/posts" &&
+	!/^\/posts\/\d+$/.test(currentPath) &&
+	(currentPath.startsWith("/posts/") || currentPath.startsWith("/post/"));
 
 // 动态构建组件 props
 const getComponentProps = (

@@ -170,14 +170,9 @@ export function normalizeNotebookTimestamp(value: number): number {
 	return numeric < 1_000_000_000_000 ? numeric * 1000 : numeric;
 }
 
-function htmlToPlainText(value: string): string {
-	if (typeof DOMParser === "undefined") return value;
-	return (
-		new DOMParser()
-			.parseFromString(value, "text/html")
-			.body.textContent?.trim() ?? ""
-	);
-}
+import { htmlToMarkdown } from "@/utils/guestbook-chat";
+
+const htmlToPlainText = htmlToMarkdown;
 
 function normalizeNotebookLink(
 	value: string | null | undefined,

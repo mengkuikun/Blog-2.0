@@ -5,6 +5,7 @@ import { siteConfig } from "@/config";
 import I18nKey from "@/i18n/i18nKey";
 import { i18n } from "@/i18n/translation";
 import MainGridLayout from "@/layouts/MainGridLayout.astro";
+import "@/styles/components/guestbook-chat.css";
 
 // 检查页面是否启用
 if (!siteConfig.pages.guestbook) {
@@ -23,43 +24,3 @@ const description = i18n(I18nKey.guestbookDescription);
 		</GuestbookChat>
 	</div>
 </MainGridLayout>
-
-<script is:inline>
-	// 修复 Swup 过渡后留言板布局被 updateMainGridCols 覆盖的问题
-	// Swup 生命周期：content:replace → page:view（同步调用 updateMainGridCols）→ visit:end
-	// swup:content:replaced 在 content:replace 的 200ms setTimeout 后触发，
-	// 但它可能在 page:view 之前或之后触发（取决于动画时长）。
-	// 最可靠的方式：监听 page:view 后用双重 requestAnimationFrame 确保最后执行。
-	function enforceGuestbookLayout() {
-		if (!document.querySelector('.guestbook-page')) return;
-		var mainGrid = document.getElementById('main-grid');
-		if (!mainGrid) return;
-		['grid-cols-1', 'md:grid-cols-[17.5rem_1fr]', 'md:grid-cols-[1fr_17.5rem]', 'xl:grid-cols-[17.5rem_1fr_17.5rem]']
-			.forEach(function(cls) { mainGrid.classList.remove(cls); });
-		mainGrid.style.setProperty('display', 'block', 'important');
-	}
-
-	// 首次加载
-	enforceGuestbookLayout();
-
-	// Swup 导航后：在 page:view 回调之后执行
-	// 使用 swup:enable 确保 Swup 已初始化
-	function bindSwupHook() {
-		if (window.swup && window.swup.hooks) {
-			window.swup.hooks.on('page:view', function() {
-				// 双重 rAF：第一帧等同步回调完成，第二帧确保布局已计算
-				requestAnimationFrame(function() {
-					requestAnimationFrame(function() {
-						enforceGuestbookLayout();
-					});
-				});
-			});
-		}
-	}
-
-	if (window.swup) {
-		bindSwupHook();
-	} else {
-		document.addEventListener('swup:enable', bindSwupHook);
-	}
-</script>

@@ -1,5 +1,6 @@
 <script lang="ts">
 import {
+	ArrowUp,
 	ImagePlus,
 	LoaderCircle,
 	Reply,
@@ -7,8 +8,11 @@ import {
 	TriangleAlert,
 	X,
 } from "lucide-svelte";
+import type { Snippet } from "svelte";
 import { tick } from "svelte";
 import { commentConfig } from "@/config/commentConfig";
+import I18nKey from "@/i18n/i18nKey";
+import { i18n } from "@/i18n/translation";
 import type {
 	GuestbookAuthUser,
 	GuestbookChatMessage,
@@ -43,6 +47,7 @@ interface Props {
 		attachment?: GuestbookImageAttachment,
 	) => Promise<boolean>;
 	onToolError: (message: string) => void;
+	children?: Snippet;
 }
 
 let {
@@ -62,6 +67,7 @@ let {
 	onLogout,
 	onSend,
 	onToolError,
+	children,
 }: Props = $props();
 
 const MAX_DRAFT_LENGTH = 300;
@@ -104,16 +110,16 @@ let resizeStartHeight = 0;
 const inputDisabled = $derived(
 	isOffline || (loginMode === "force" && !authUser),
 );
-const authName = $derived(authUser?.display_name || "访客");
+const authName = $derived(authUser?.display_name || i18n(I18nKey.gbVisitor));
 const activeEmojiPack = $derived(emojiPacks[activeEmojiPackIndex] ?? null);
 const hasGuestProfile = $derived(profile.nick.trim().length >= 2);
-
-function formatMobileIdentityName(value: string): string {
-	const characters = Array.from(value.trim());
-	return characters.length > 4
-		? `${characters.slice(0, 4).join("")}...`
-		: characters.join("");
-}
+const identityLabel = $derived(
+	authUser
+		? authName
+		: hasGuestProfile
+			? profile.nick
+			: i18n(I18nKey.gbNotLoggedIn),
+);
 
 async function openGuestProfile() {
 	profileDraft = { ...profile };
@@ -130,23 +136,33 @@ function closeGuestProfile() {
 	document.body.style.overflow = "";
 }
 
+function handleDialogLogin() {
+	closeGuestProfile();
+	onLogin();
+}
+
+function handleDialogLogout() {
+	closeGuestProfile();
+	onLogout();
+}
+
 function validateGuestProfile(nextProfile: GuestbookProfile): string {
-	if (nextProfile.nick.length < 2) return "游客昵称至少需要 2 个字符";
-	if (!nextProfile.mail) return "请填写邮箱，游客留言需要留下邮箱";
+	if (nextProfile.nick.length < 2)
+		return i18n(I18nKey.gbNicknameMinLength).replace("{min}", "2");
 	if (
 		nextProfile.mail &&
 		!/^[^\s@]+@[^\s@]+\.[^\s@]+$/u.test(nextProfile.mail)
 	) {
-		return "邮箱格式不正确";
+		return i18n(I18nKey.gbEmailInvalid);
 	}
 	if (nextProfile.link) {
 		try {
 			const website = new URL(nextProfile.link);
 			if (website.protocol !== "http:" && website.protocol !== "https:") {
-				return "网站地址仅支持 http 或 https";
+				return i18n(I18nKey.gbLinkProtocolInvalid);
 			}
 		} catch {
-			return "网站地址格式不正确";
+			return i18n(I18nKey.gbLinkInvalid);
 		}
 	}
 	return "";
@@ -300,7 +316,9 @@ function insertContent(content: string): boolean {
 	if (!textarea) {
 		const nextDraft = `${draft}${content}`;
 		if (nextDraft.length > MAX_DRAFT_LENGTH) {
-			onToolError(`消息不能超过 ${MAX_DRAFT_LENGTH} 个字符`);
+			onToolError(
+				i18n(I18nKey.gbMsgMaxLength).replace("{max}", String(MAX_DRAFT_LENGTH)),
+			);
 			return false;
 		}
 		onDraftChange(nextDraft);
@@ -311,7 +329,9 @@ function insertContent(content: string): boolean {
 	const end = textarea.selectionEnd;
 	const nextDraft = `${draft.slice(0, start)}${content}${draft.slice(end)}`;
 	if (nextDraft.length > MAX_DRAFT_LENGTH) {
-		onToolError(`消息不能超过 ${MAX_DRAFT_LENGTH} 个字符`);
+		onToolError(
+			i18n(I18nKey.gbMsgMaxLength).replace("{max}", String(MAX_DRAFT_LENGTH)),
+		);
 		return false;
 	}
 	onDraftChange(nextDraft);
@@ -333,9 +353,7 @@ async function loadEmojis() {
 		activeEmojiPackIndex = 0;
 	} catch (error) {
 		emojiError =
-			error instanceof Error
-				? error.message
-				: "Waline 表情加载失败，请稍后重试";
+			error instanceof Error ? error.message : i18n(I18nKey.gbEmojiLoadFailed);
 	} finally {
 		isLoadingEmojis = false;
 	}
@@ -358,32 +376,10 @@ function serializeEmojiShortcodes(content: string): string {
 	);
 	return content.replace(/:([A-Za-z0-9_-]+):/gu, (shortcode, key: string) => {
 		const url = emojiByKey.get(key);
-		return url ? `![${key}](${url} "emoji")` : shortcode;
+		return url
+			? `![${key}](${url} "${i18n(I18nKey.gbEmojiImageTitle)}")`
+			: shortcode;
 	});
-}
-
-function renderDraftWithEmojis(content: string): string {
-	if (!content || emojiPacks.length === 0) return "";
-	const emojiByKey = new Map(
-		emojiPacks.flatMap((pack) =>
-			pack.items.map((emoji) => [emoji.key, emoji.url] as const),
-		),
-	);
-	let hasEmoji = false;
-	const html = content
-		.replace(/&/gu, "&amp;")
-		.replace(/</gu, "&lt;")
-		.replace(/>/gu, "&gt;")
-		.replace(/:([A-Za-z0-9_-]+):/gu, (_match, key: string) => {
-			const url = emojiByKey.get(key);
-			if (url) {
-				hasEmoji = true;
-				return `<img src="${url}" alt=":${key}:" class="guestbook-composer__preview-emoji" loading="lazy" />`;
-			}
-			return `:${key}:`;
-		})
-		.replace(/\n/gu, "<br>");
-	return hasEmoji ? html : "";
 }
 
 function openImagePicker() {
@@ -395,8 +391,8 @@ async function submitMessage() {
 	if (!authUser && loginMode !== "force" && !hasGuestProfile) {
 		onToolError(
 			loginMode === "disable"
-				? "请先通过游客访问填写资料后再发送"
-				: "请选择游客访问并填写资料，或登录后发送",
+				? i18n(I18nKey.gbGuestProfileRequiredDisabled)
+				: i18n(I18nKey.gbGuestProfileRequired),
 		);
 		return;
 	}
@@ -413,12 +409,14 @@ async function handleImageSelection(event: Event) {
 	input.value = "";
 	if (!file) return;
 	if (!supportedImageTypes.has(file.type)) {
-		onToolError("仅支持 PNG、JPEG、GIF 或 WebP 图片");
+		onToolError(i18n(I18nKey.gbImageTypeUnsupported));
 		return;
 	}
 	if (file.size > maxImageSize) {
 		onToolError(
-			imageUploadURL ? "图片不能超过 5 MB" : "Waline 原生图片不能超过 128 KB",
+			imageUploadURL
+				? i18n(I18nKey.gbImageTooLarge)
+				: i18n(I18nKey.gbImageTooLargeInline),
 		);
 		return;
 	}
@@ -431,10 +429,12 @@ async function handleImageSelection(event: Event) {
 			.replace(/\.[^.]+$/u, "")
 			.replace(/[[\]]/gu, "")
 			.trim();
-		pendingImage = { name: name || "图片", url };
+		pendingImage = { name: name || i18n(I18nKey.image), url };
 	} catch (error) {
 		onToolError(
-			error instanceof Error ? error.message : "图片上传失败，请稍后重试",
+			error instanceof Error
+				? error.message
+				: i18n(I18nKey.gbImageUploadFailed),
 		);
 	} finally {
 		isUploadingImage = false;
@@ -453,10 +453,15 @@ async function handleImageSelection(event: Event) {
 		<div class="guestbook-composer__reply">
 			<Reply size={16} aria-hidden="true" />
 			<div>
-				<span>回复 @{replyTarget.nick}</span>
+				<span>{i18n(I18nKey.gbComposerReplyTo).replace("{nick}", replyTarget.nick)}</span>
 				<small>{replyTarget.body.slice(0, 80)}</small>
 			</div>
-			<button type="button" onclick={onReplyCancel} aria-label="取消引用" title="取消引用">
+			<button
+				type="button"
+				onclick={onReplyCancel}
+				aria-label={i18n(I18nKey.gbCancelQuote)}
+				title={i18n(I18nKey.gbCancelQuote)}
+			>
 				<X size={18} aria-hidden="true" />
 			</button>
 		</div>
@@ -474,8 +479,8 @@ async function handleImageSelection(event: Event) {
 			onpointerup={finishTextareaResize}
 			onpointercancel={finishTextareaResize}
 			onkeydown={handleResizeKeydown}
-			aria-label="调整输入框高度"
-			title="向上拖动扩大输入框"
+			aria-label={i18n(I18nKey.gbResizeAria)}
+			title={i18n(I18nKey.gbResizeTitle)}
 		></button>
 		<textarea
 			bind:this={textarea}
@@ -487,18 +492,11 @@ async function handleImageSelection(event: Event) {
 			rows="3"
 			maxlength="300"
 			placeholder={loginMode === "force" && !authUser
-				? "登录后参与聊天"
-				: "说点什么..."}
-			aria-label="聊天消息"
+				? i18n(I18nKey.gbPlaceholderRequireLogin)
+				: i18n(I18nKey.gbPlaceholder)}
+			aria-label={i18n(I18nKey.gbComposerAria)}
 			disabled={inputDisabled}
 		></textarea>
-
-		{#if draft && emojiPacks.length > 0}
-			{@const previewHtml = renderDraftWithEmojis(draft)}
-			{#if previewHtml}
-				<div class="guestbook-composer__preview">{@html previewHtml}</div>
-			{/if}
-		{/if}
 
 		{#if pendingImage}
 			<div class="guestbook-composer__image-preview">
@@ -507,13 +505,19 @@ async function handleImageSelection(event: Event) {
 				<button
 					type="button"
 					onclick={() => (pendingImage = null)}
-					aria-label="移除待发送图片"
-					title="移除图片"
+					aria-label={i18n(I18nKey.gbRemoveImageAria)}
+					title={i18n(I18nKey.gbRemoveImageTitle)}
 				>
 					<X size={16} aria-hidden="true" />
 				</button>
 			</div>
 		{/if}
+
+		<span class="guestbook-composer__count">
+			{i18n(I18nKey.gbCharCount)
+				.replace("{count}", String(draft.length))
+				.replace("{max}", String(MAX_DRAFT_LENGTH))}
+		</span>
 
 		<div class="guestbook-composer__footer">
 			<div class="guestbook-composer__tools">
@@ -522,10 +526,10 @@ async function handleImageSelection(event: Event) {
 					type="button"
 					class:is-active={showEmojiPicker}
 					onclick={toggleEmojiPicker}
-					aria-label="选择表情"
+					aria-label={i18n(I18nKey.gbEmojiAria)}
 					aria-expanded={showEmojiPicker}
 					aria-controls="guestbook-emoji-picker"
-					title="表情"
+					title={i18n(I18nKey.emoji)}
 					disabled={inputDisabled}
 				>
 					<Smile size={20} aria-hidden="true" />
@@ -533,8 +537,8 @@ async function handleImageSelection(event: Event) {
 				<button
 					type="button"
 					onclick={openImagePicker}
-					aria-label="上传图片"
-					title="图片"
+					aria-label={i18n(I18nKey.gbUploadImageAria)}
+					title={i18n(I18nKey.image)}
 					disabled={inputDisabled || isUploadingImage}
 				>
 					{#if isUploadingImage}
@@ -552,93 +556,23 @@ async function handleImageSelection(event: Event) {
 					tabindex="-1"
 					aria-hidden="true"
 				/>
+				{@render children?.()}
 			</div>
 
 			<div class="guestbook-composer__actions">
-				<span class="guestbook-composer__count">{draft.length}/300</span>
-				{#if authUser}
-					<span
-						class:is-admin={authUser.type === "administrator"}
-						class="guestbook-composer__identity-summary"
-						role="button"
-						tabindex="0"
-						aria-label={`当前登录用户：${authName}`}
-					>
-						<span
-							class="guestbook-composer__identity-label guestbook-composer__identity-label--desktop"
-						>
-							{authUser.type === "administrator" ? "管理员" : "已登录"} · {authName}
+				<button
+					class="guestbook-composer__identity"
+					type="button"
+					onclick={() => void openGuestProfile()}
+					title={i18n(I18nKey.gbGuestProfile)}
+				>
+					{#if authUser?.type === "administrator"}
+						<span class="guestbook-composer__identity-role">
+							{i18n(I18nKey.gbAdminRole)}
 						</span>
-						<span
-							class="guestbook-composer__identity-label guestbook-composer__identity-label--mobile"
-						>
-							{authUser.type === "administrator"
-								? "管理员"
-								: formatMobileIdentityName(authName)}
-						</span>
-						<span class="guestbook-composer__identity-tooltip" role="tooltip">
-							<span>当前用户：{authName}</span>
-						</span>
-					</span>
-				{:else if loginMode !== "force"}
-					<span
-						class="guestbook-composer__identity-summary"
-						role="button"
-						tabindex="0"
-						aria-label={hasGuestProfile
-							? `游客资料，昵称 ${profile.nick}，邮箱 ${profile.mail || "未填写"}，网址 ${profile.link || "未填写"}`
-							: "游客资料未填写"}
-					>
-						<span
-							class="guestbook-composer__identity-label guestbook-composer__identity-label--desktop"
-						>
-							{hasGuestProfile ? profile.nick : "无"}
-						</span>
-						<span
-							class="guestbook-composer__identity-label guestbook-composer__identity-label--mobile"
-						>
-							{hasGuestProfile ? formatMobileIdentityName(profile.nick) : "无"}
-						</span>
-						<span class="guestbook-composer__identity-tooltip" role="tooltip">
-							{#if hasGuestProfile}
-								<span>昵称：{profile.nick}</span>
-								<span>邮箱：{profile.mail || "未填写"}</span>
-								<span>网址：{profile.link || "未填写"}</span>
-							{:else}
-								<span>尚未填写游客资料</span>
-							{/if}
-						</span>
-					</span>
-					<button
-						class="guestbook-composer__guest-profile"
-						type="button"
-						onclick={() => void openGuestProfile()}
-						title={hasGuestProfile ? "修改游客资料" : "填写游客资料"}
-					>
-						游客访问
-					</button>
-				{/if}
-				{#if loginMode !== "disable"}
-					{#if authUser}
-						<button
-							class="guestbook-composer__login guestbook-composer__login--logout"
-							type="button"
-							onclick={onLogout}
-							title="退出 Waline 登录"
-						>
-							退出
-						</button>
-					{:else}
-						<button
-							class="guestbook-composer__login"
-							type="button"
-							onclick={onLogin}
-							disabled={loggingIn}
-						>
-							{loggingIn ? "登录中" : "登录"}
-						</button>
 					{/if}
-				{/if}
+					<span class="guestbook-composer__identity-name">{identityLabel}</span>
+				</button>
 
 				<button
 					class="guestbook-composer__send"
@@ -646,8 +580,14 @@ async function handleImageSelection(event: Event) {
 					onclick={() => void submitMessage()}
 					disabled={inputDisabled || isSending || isUploadingImage}
 					aria-busy={isSending}
+					aria-label={i18n(I18nKey.send)}
+					title={i18n(I18nKey.send)}
 				>
-					{isSending ? "发送中" : "发送"}
+					{#if isSending}
+						<LoaderCircle class="is-spinning" size={18} aria-hidden="true" />
+					{:else}
+						<ArrowUp size={18} aria-hidden="true" />
+					{/if}
 				</button>
 			</div>
 		</div>
@@ -658,19 +598,19 @@ async function handleImageSelection(event: Event) {
 				id="guestbook-emoji-picker"
 				class="guestbook-composer__emojis"
 				role="dialog"
-				aria-label="Waline 表情"
+				aria-label={i18n(I18nKey.gbWalineEmojiAria)}
 			>
 				{#if isLoadingEmojis}
 					<div class="guestbook-composer__emoji-state" role="status">
-						<LoaderCircle class="is-spinning" size={18} aria-hidden="true" />加载表情
+						<LoaderCircle class="is-spinning" size={18} aria-hidden="true" />{i18n(I18nKey.gbLoadingEmoji)}
 					</div>
 				{:else if emojiError}
 					<div class="guestbook-composer__emoji-state" role="alert">
 						<span>{emojiError}</span>
-						<button type="button" onclick={() => void loadEmojis()}>重试</button>
+						<button type="button" onclick={() => void loadEmojis()}>{i18n(I18nKey.retry)}</button>
 					</div>
 				{:else if activeEmojiPack}
-					<div class="guestbook-composer__emoji-tabs" role="tablist" aria-label="表情包">
+					<div class="guestbook-composer__emoji-tabs" role="tablist" aria-label={i18n(I18nKey.gbEmojiPacksAria)}>
 						{#each emojiPacks as pack, index}
 							<button
 								type="button"
@@ -689,7 +629,10 @@ async function handleImageSelection(event: Event) {
 							<button
 								type="button"
 								onclick={() => insertEmoji(emoji)}
-								aria-label={`插入 ${emoji.key}`}
+								aria-label={i18n(I18nKey.gbInsertEmojiAria).replace(
+									"{key}",
+									emoji.key,
+								)}
 								title={emoji.key}
 							>
 								<img src={emoji.url} alt="" loading="lazy" />
@@ -708,8 +651,8 @@ async function handleImageSelection(event: Event) {
 			<button
 				type="button"
 				onclick={() => onToolError("")}
-				aria-label="关闭提示"
-				title="关闭提示"
+					aria-label={i18n(I18nKey.gbCloseTip)}
+					title={i18n(I18nKey.gbCloseTip)}
 			>
 				<X size={15} aria-hidden="true" />
 			</button>
@@ -730,7 +673,16 @@ async function handleImageSelection(event: Event) {
 		closeGuestProfile();
 	}}
 >
-	<div class="privacy-overlay" role="button" tabindex="-1" onclick={closeGuestProfile} onkeydown={(e) => { if (e.key === "Enter" || e.key === " ") closeGuestProfile(); }}></div>
+	<div
+		class="privacy-overlay"
+		role="button"
+		tabindex="-1"
+		aria-label={i18n(I18nKey.gbCloseGuestProfile)}
+		onclick={closeGuestProfile}
+		onkeydown={(e) => {
+			if (e.key === "Enter" || e.key === " ") closeGuestProfile();
+		}}
+	></div>
 	<form
 		class="privacy-panel guestbook-profile-modal__panel"
 		onsubmit={(event) => {
@@ -739,57 +691,109 @@ async function handleImageSelection(event: Event) {
 		}}
 	>
 		<div class="privacy-header">
-			<h2 id="guestbook-profile-title" class="privacy-title">游客资料</h2>
+				<h2 id="guestbook-profile-title" class="privacy-title">{i18n(I18nKey.gbGuestProfile)}</h2>
 			<button
 				class="privacy-close"
 				type="button"
 				onclick={closeGuestProfile}
-				aria-label="关闭游客资料"
+				aria-label={i18n(I18nKey.gbCloseGuestProfile)}
 			>
 				<X size={20} aria-hidden="true" />
 			</button>
 		</div>
 		<div class="privacy-body guestbook-profile-modal__body">
-			<label>
-				<span>昵称</span>
-				<input
-					bind:this={profileNickInput}
-					bind:value={profileDraft.nick}
-					maxlength="30"
-					autocomplete="nickname"
-					placeholder="至少 2 个字符"
-					required
-				/>
-			</label>
-			<label>
-				<span>邮箱</span>
-				<input
-					bind:value={profileDraft.mail}
-					maxlength="100"
-					type="email"
-					autocomplete="email"
-					placeholder="用于头像，不公开"
-				/>
-			</label>
-			<label>
-				<span>网址</span>
-				<input
-					bind:value={profileDraft.link}
-					maxlength="200"
-					type="url"
-					autocomplete="url"
-					placeholder="可选"
-				/>
-			</label>
-			{#if profileDialogError}
-				<p class="guestbook-profile-modal__error" role="alert">
-					{profileDialogError}
+			{#if authUser}
+				<p class="guestbook-profile-modal__signed">
+					{authUser.type === "administrator"
+						? i18n(I18nKey.gbAdminRole)
+						: i18n(I18nKey.gbLoggedIn)}
+					· {authName}
 				</p>
+			{:else if loginMode !== "force"}
+				<label>
+					<span>{i18n(I18nKey.gbNickname)}</span>
+					<input
+						bind:this={profileNickInput}
+						bind:value={profileDraft.nick}
+						maxlength="30"
+						autocomplete="nickname"
+						placeholder={i18n(I18nKey.gbNicknamePlaceholder)}
+						required
+					/>
+				</label>
+				<label>
+					<span>{i18n(I18nKey.gbEmail)}</span>
+					<input
+						bind:value={profileDraft.mail}
+						maxlength="100"
+						type="email"
+						autocomplete="email"
+						placeholder={i18n(I18nKey.gbEmailPlaceholder)}
+					/>
+				</label>
+				<label>
+					<span>{i18n(I18nKey.gbLink)}</span>
+					<input
+						bind:value={profileDraft.link}
+						maxlength="200"
+						type="url"
+						autocomplete="url"
+						placeholder={i18n(I18nKey.gbOptional)}
+					/>
+				</label>
+				{#if profileDialogError}
+					<p class="guestbook-profile-modal__error" role="alert">
+						{profileDialogError}
+					</p>
+				{/if}
+				{#if loginMode === "enable"}
+					<div class="guestbook-profile-modal__login-entry">
+						<span class="guestbook-profile-modal__divider" aria-hidden="true">
+							{i18n(I18nKey.gbOr)}
+						</span>
+						<button
+							type="button"
+							onclick={handleDialogLogin}
+							disabled={loggingIn}
+						>
+							{loggingIn ? i18n(I18nKey.gbLoggingIn) : i18n(I18nKey.login)}
+						</button>
+					</div>
+				{/if}
 			{/if}
 		</div>
 		<div class="privacy-footer guestbook-profile-modal__actions">
-			<button type="button" onclick={closeGuestProfile}>取消</button>
-			<button class="privacy-confirm-btn" type="submit">保存资料</button>
+			{#if authUser}
+				<button
+					class="guestbook-profile-modal__logout"
+					type="button"
+					onclick={handleDialogLogout}
+				>
+					{i18n(I18nKey.logout)}
+				</button>
+				<button class="privacy-confirm-btn" type="button" onclick={closeGuestProfile}>
+					{i18n(I18nKey.close)}
+				</button>
+			{:else if loginMode === "force"}
+				<button type="button" onclick={closeGuestProfile}>
+					{i18n(I18nKey.cancel)}
+				</button>
+				<button
+					class="privacy-confirm-btn"
+					type="button"
+					onclick={handleDialogLogin}
+					disabled={loggingIn}
+				>
+					{loggingIn ? i18n(I18nKey.gbLoggingIn) : i18n(I18nKey.login)}
+				</button>
+			{:else}
+				<button type="button" onclick={closeGuestProfile}>
+					{i18n(I18nKey.cancel)}
+				</button>
+				<button class="privacy-confirm-btn" type="submit">
+					{i18n(I18nKey.gbSaveProfile)}
+				</button>
+			{/if}
 		</div>
 	</form>
 </dialog>

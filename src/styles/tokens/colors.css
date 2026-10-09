@@ -84,6 +84,7 @@
   --guestbook-editor-muted: #666666;
   --guestbook-editor-line: #D6D6D6;
   --guestbook-editor-hover: #EAEAEA;
+  --guestbook-dock-bg: #E7E7E7;
   --guestbook-focus: #3D3D3D;
   --guestbook-send-bg: #171717;
   --guestbook-send-text: #FFFFFF;
@@ -97,12 +98,11 @@
   --guestbook-line: var(--line-divider);
   --guestbook-danger: var(--admonitions-color-caution);
   --guestbook-success: var(--admonitions-color-tip);
+  --guestbook-waiting: #E5484D;
   --guestbook-avatar-size: 2.625rem;
-  --guestbook-chat-height: min(74vh, 47.5rem);
-  --guestbook-chat-min-height: 37.5rem;
-  --guestbook-chat-max-width: 90rem;
+  --guestbook-chat-max-width: 64rem;
   --guestbook-sidebar-width: 18rem;
-  --guestbook-viewport-offset: 4.75rem;
+  --guestbook-viewport-offset: 5.5rem;
   --guestbook-mobile-dock-clearance: 6.25rem;
 }
 
@@ -171,24 +171,26 @@
 
   --guestbook-panel: transparent;
   --guestbook-surface: transparent;
-  --guestbook-editor-bg: #2D2D2D;
-  --guestbook-editor-text: #FFFFFF;
-  --guestbook-editor-muted: #B8B8B8;
+  --guestbook-editor-bg: #282828;
+  --guestbook-editor-text: #dadada;
+  --guestbook-editor-muted: #b3b3b3;
   --guestbook-editor-line: #555555;
-  --guestbook-editor-hover: #262626;
-  --guestbook-focus: #D6D6D6;
+  --guestbook-editor-hover: #232323;
+  --guestbook-dock-bg: #282828;
+  --guestbook-focus: #dadada;
   --guestbook-send-bg: #FFFFFF;
-  --guestbook-send-text: #111111;
+  --guestbook-send-text: #101010;
   --guestbook-link: #22C55E;
   --guestbook-overlay: rgb(0 0 0 / 0.72);
-  --guestbook-bubble: #262626;
-  --guestbook-bubble-text: #FFFFFF;
+  --guestbook-bubble: #282828;
+  --guestbook-bubble-text: #dadada;
   --guestbook-admin-bubble: #FFFFFF;
-  --guestbook-admin-text: #111111;
+  --guestbook-admin-text: #101010;
   --guestbook-muted: var(--content-meta);
   --guestbook-line: var(--line-divider);
   --guestbook-danger: var(--admonitions-color-caution);
   --guestbook-success: var(--admonitions-color-tip);
+  --guestbook-waiting: #E5484D;
 }
 
 /* ===== 文章列表 / 置顶轮播 ===== */

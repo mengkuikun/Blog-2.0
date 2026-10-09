@@ -179,25 +179,109 @@ export function parseGuestbookMessageBody(raw: string): {
 	body: string;
 	replyToId?: string;
 	replyToNick?: string;
+	marker?: string;
 } {
 	const match = raw.match(REPLY_MARKER);
 	if (!match) return { body: raw.trim() };
 
+	const replyToNick = decodeReplyNick(match[2]);
+	const withoutMarker = raw.replace(REPLY_MARKER, "").trim();
+	// 旧版把「@昵称 」写进了正文，新数据改由服务端 pid 承载，这里补掉前缀才能新旧一致
+	const mention = `@${replyToNick} `;
+
 	return {
-		body: raw.replace(REPLY_MARKER, "").trim(),
+		body: withoutMarker.startsWith(mention)
+			? withoutMarker.slice(mention.length).trim()
+			: withoutMarker,
 		replyToId: match[1],
-		replyToNick: decodeReplyNick(match[2]),
+		replyToNick,
+		marker: match[0],
 	};
 }
 
-function htmlToPlainText(value: string): string {
+/**
+ * 将 Waline 服务端下发的 HTML（当未登录访客缺失 comment.orig 原始 Markdown 字段时）
+ * 还原为兼容富文本/表情包/图片的 Markdown 格式，防止表情图片丢失导致空白气泡。
+ */
+export function htmlToMarkdown(value: string): string {
+	if (!value) return "";
 	if (typeof DOMParser === "undefined") return value;
-	return (
-		new DOMParser()
-			.parseFromString(value, "text/html")
-			.body.textContent?.trim() ?? ""
-	);
+	const doc = new DOMParser().parseFromString(value, "text/html");
+
+	function walk(node: Node): string {
+		if (node.nodeType === Node.TEXT_NODE) {
+			return node.textContent || "";
+		}
+		if (node.nodeType === Node.COMMENT_NODE) {
+			return `<!--${node.nodeValue || ""}-->`;
+		}
+		if (node.nodeType !== Node.ELEMENT_NODE) {
+			return "";
+		}
+
+		const el = node as HTMLElement;
+		const tag = el.tagName.toLowerCase();
+		if (["script", "style", "iframe", "object", "embed"].includes(tag)) {
+			return "";
+		}
+
+		const children = Array.from(el.childNodes).map(walk).join("");
+
+		switch (tag) {
+			case "p":
+			case "div":
+				return `${children}\n\n`;
+			case "br":
+				return "\n";
+			case "li":
+				return `- ${children.trim()}\n`;
+			case "ul":
+			case "ol":
+				return `\n${children}\n`;
+			case "img": {
+				const src = el.getAttribute("src") || "";
+				if (!src) return "";
+				const rawAlt =
+					el.getAttribute("alt") || el.getAttribute("title") || "表情";
+				const alt = rawAlt.replace(/[[\]]/gu, "").trim() || "表情";
+				return `![${alt}](${src})`;
+			}
+			case "a": {
+				const href = el.getAttribute("href") || "";
+				if (!href) return children;
+				const text = children.trim() || href;
+				const safeText = text.replace(/[[\]]/gu, "").trim() || href;
+				return `[${safeText}](${href})`;
+			}
+			case "strong":
+			case "b":
+				return children ? `**${children}**` : "";
+			case "em":
+			case "i":
+				return children ? `*${children}*` : "";
+			case "del":
+			case "s":
+				return children ? `~~${children}~~` : "";
+			case "code":
+				if (el.parentElement?.tagName.toLowerCase() === "pre") {
+					return children;
+				}
+				return children ? `\`${children}\`` : "";
+			case "pre":
+				return `\n\`\`\`\n${children.trim()}\n\`\`\`\n`;
+			case "blockquote":
+				return `\n> ${children.trim()}\n`;
+			default:
+				return children;
+		}
+	}
+
+	return walk(doc.body)
+		.replace(/\n{3,}/gu, "\n\n")
+		.trim();
 }
+
+export const htmlToPlainText: (value: string) => string = htmlToMarkdown;
 
 function normalizeGuestbookLink(
 	value: string | null | undefined,
@@ -235,9 +319,30 @@ export function normalizeGuestbookComment(
 	const isAdmin =
 		comment.type === "administrator" || isAdminNick(nick, adminNicknames);
 
+	// 引用关系优先取服务端的 pid（真回复，会触发邮件通知），历史数据才回退到正文里的注释标记
+	const rawComment = comment as unknown as {
+		pid?: string | number | null;
+		rid?: string | number | null;
+		reply_user?: { nick?: string } | string | null;
+		at?: string | null;
+	};
+	const nativeReply = rawComment.pid ? String(rawComment.pid) : null;
+	const replyNickFromUser =
+		typeof rawComment.reply_user === "object" && rawComment.reply_user !== null
+			? rawComment.reply_user.nick
+			: typeof rawComment.reply_user === "string"
+				? rawComment.reply_user
+				: rawComment.at;
+
 	return {
 		id: String(comment.objectId),
 		objectId: comment.objectId,
+		rootId:
+			typeof rawComment.rid === "number"
+				? rawComment.rid
+				: typeof comment.objectId === "number"
+					? comment.objectId
+					: undefined,
 		userId: comment.user_id,
 		nick,
 		avatar: comment.avatar || "",
@@ -249,22 +354,83 @@ export function normalizeGuestbookComment(
 		addr: comment.addr,
 		label: comment.label,
 		isAdmin,
-		replyToId: parsed.replyToId,
-		replyToNick: parsed.replyToNick,
+		replyToId: nativeReply ?? parsed.replyToId,
+		replyToNick: nativeReply
+			? (replyNickFromUser ?? parsed.replyToNick)
+			: parsed.replyToNick,
+		legacyReplyMarker: nativeReply ? undefined : parsed.marker,
 		status: comment.status,
 	};
+}
+
+/**
+ * 智能补全/还原回复引用关系：
+ * 当普通访客未登录管理员时，Waline 默认不向普通用户下发 comment.orig 字段，
+ * 导致原始 HTML 注释 <!--guestbook-reply:id:nick--> 丢失。
+ * 此时通过消息正文开头的 @昵称 与上下文历史消息进行倒序匹配，
+ * 自动还原出精准的 replyToId 与 replyToNick，使普通访客也能看到完整的回复引用 UI。
+ */
+export function resolveGuestbookReplies(
+	messages: GuestbookChatMessage[],
+): GuestbookChatMessage[] {
+	const sorted = [...messages].sort(
+		(left, right) => left.createdAt - right.createdAt,
+	);
+
+	for (let i = 0; i < sorted.length; i++) {
+		const msg = sorted[i];
+
+		// 如果已有 replyToId，确保 replyToNick 完整
+		if (msg.replyToId) {
+			if (!msg.replyToNick) {
+				const target = sorted.find(
+					(candidate) => candidate.id === msg.replyToId,
+				);
+				if (target) msg.replyToNick = target.nick;
+			}
+			continue;
+		}
+
+		// 检查正文是否以 @昵称 开头（回复的标准格式）
+		const atMatch = msg.body.match(/^@([^\s@\n]+)(?:\s+|$)/u);
+		if (!atMatch) continue;
+
+		const targetNick = atMatch[1].trim();
+		if (!targetNick) continue;
+
+		// 在该消息发布之前的历史消息中，倒序查找该昵称最近发布的消息
+		let targetMessage: GuestbookChatMessage | undefined;
+		for (let j = i - 1; j >= 0; j--) {
+			if (sorted[j].nick === targetNick) {
+				targetMessage = sorted[j];
+				break;
+			}
+		}
+
+		if (targetMessage) {
+			msg.replyToId = targetMessage.id;
+			msg.replyToNick = targetMessage.nick;
+		} else {
+			// 若更早的历史消息尚未分页加载到本地，先记录目标昵称
+			msg.replyToNick = targetNick;
+		}
+	}
+
+	return sorted;
 }
 
 export function flattenGuestbookComments(
 	roots: WalineRootComment[],
 	adminNicknames?: Set<string>,
 ): GuestbookChatMessage[] {
-	return roots
+	const flattened = roots
 		.flatMap((root) => [
 			normalizeGuestbookComment(root, adminNicknames),
 			...root.children.map((c) => normalizeGuestbookComment(c, adminNicknames)),
 		])
 		.sort((left, right) => left.createdAt - right.createdAt);
+
+	return resolveGuestbookReplies(flattened);
 }
 
 export function mergeGuestbookMessages(
@@ -287,9 +453,19 @@ export function mergeGuestbookMessages(
 		}
 	}
 
-	return [...serverMessages.values(), ...localMessages].sort(
+	const merged = [...serverMessages.values(), ...localMessages].sort(
 		(left, right) => left.createdAt - right.createdAt,
 	);
+
+	return resolveGuestbookReplies(merged);
+}
+
+export function buildGuestbookReplyFields(
+	target: GuestbookChatMessage | null,
+): { pid?: number; rid?: number } {
+	if (!target?.objectId) return {};
+	const pid = target.objectId;
+	return { pid, rid: target.rootId ?? pid };
 }
 
 export function buildGuestbookMessageBody(
@@ -305,9 +481,8 @@ export function buildGuestbookEditedMessageBody(
 	content: string,
 	message: GuestbookChatMessage,
 ): string {
-	if (!message.replyToId) return content;
-	const marker = `<!--guestbook-reply:${message.replyToId}:${encodeURIComponent(message.replyToNick || "访客")}-->`;
-	return `${marker}\n${content}`;
+	if (!message.legacyReplyMarker) return content;
+	return `${message.legacyReplyMarker}\n${content}`;
 }
 
 export function getGuestbookErrorMessage(error: unknown): string {
