@@ -8,12 +8,15 @@ import {
 } from "@waline/api";
 import {
 	AlertCircle,
+	Ban,
 	Bell,
+	Check,
 	ChevronDown,
-	ChevronRight,
+	ChevronUp,
 	LoaderCircle,
 	RefreshCw,
 	RotateCcw,
+	ShieldCheck,
 	Users,
 	WifiOff,
 	X,
@@ -21,6 +24,8 @@ import {
 import { onMount, tick } from "svelte";
 import { commentConfig } from "@/config/commentConfig";
 import { guestbookConfig } from "@/config/guestbookConfig";
+import I18nKey from "@/i18n/i18nKey";
+import { i18n } from "@/i18n/translation";
 import type { GuestbookAnnouncementItem } from "@/types/config";
 import type {
 	GuestbookAuthUser,
@@ -31,7 +36,7 @@ import type {
 import {
 	appendGuestbookImage,
 	buildGuestbookEditedMessageBody,
-	buildGuestbookMessageBody,
+	buildGuestbookReplyFields,
 	flattenGuestbookComments,
 	getGuestbookErrorMessage,
 	getGuestbookInitials,
@@ -46,18 +51,21 @@ import GuestbookChatComposer from "./GuestbookChatComposer.svelte";
 import GuestbookChatMessage from "./GuestbookChatMessage.svelte";
 
 const CHANNEL_PATH = "/guestbook/";
-const PAGE_SIZE = 30;
-const POLL_INTERVAL = 30_000;
+// getComment 按根评论分页，回复只附在父评论所在的那一页上，所以必须整条 path 全量拉取才不会漏掉新回复。
+// 必须是 2 的幂：脏数据页靠对半拆分回退（见 collect）；64 是服务端 pageSize 上限 100 以内最大的 2 的幂。
+const SYNC_PAGE_SIZE = 64;
+// 一次渲染多少条。数据是全量的，这里只限制 DOM 里的消息数，展开时不再发请求。
+const VISIBLE_WINDOW = 20;
 const MIN_MESSAGE_LENGTH = 2;
 const MAX_MESSAGE_LENGTH = 300;
 const PROFILE_STORAGE_KEY = "guestbook-chat-profile";
 const AUTH_STORAGE_KEY = "guestbook-chat-auth";
 const DRAFT_STORAGE_KEY = "guestbook-chat-draft";
+const PENDING_STORAGE_KEY = "guestbook-chat-pending-messages";
 const serverURL = commentConfig.waline?.serverURL ?? "";
 const lang = commentConfig.waline?.lang ?? "zh-CN";
 const loginMode = commentConfig.waline?.login ?? "enable";
 const announcements = guestbookConfig.announcements;
-const adminNicknames = new Set(guestbookConfig.adminNicknames ?? []);
 
 let messages = $state<GuestbookMessage[]>([]);
 let profile = $state<GuestbookProfile>({ nick: "", mail: "", link: "" });
@@ -68,56 +76,106 @@ let initialLoading = $state(true);
 let initialError = $state("");
 let syncError = $state("");
 let composerError = $state("");
-let loadingOlder = $state(false);
 let syncing = $state(false);
 let loggingIn = $state(false);
 let isOffline = $state(false);
-let currentPage = $state(1);
-let totalPages = $state(0);
-let totalCount = $state(0);
 let newMessageCount = $state(0);
 let lastSyncedAt = $state<number | null>(null);
 let messageList = $state<HTMLDivElement | null>(null);
 let announcementDialog = $state<HTMLDialogElement | null>(null);
 let deleteDialog = $state<HTMLDialogElement | null>(null);
 let selectedAnnouncement = $state<GuestbookAnnouncementItem | null>(null);
+let noticeDialog = $state<HTMLDialogElement | null>(null);
+let memberPanel = $state<HTMLElement | null>(null);
+let memberToggle = $state<HTMLButtonElement | null>(null);
 let sidebarOpen = $state(false);
+let auditSidebarOpen = $state(false);
+let auditPanel = $state<HTMLElement | null>(null);
+let auditToggle = $state<HTMLButtonElement | null>(null);
 let showScrollToBottom = $state(false);
+let visibleCount = $state(VISIBLE_WINDOW);
 let editingMessageId = $state<string | null>(null);
 let editDraft = $state("");
 let mutatingMessageId = $state<string | null>(null);
 let messageActionError = $state<{ id: string; message: string } | null>(null);
 let deleteTarget = $state<GuestbookMessage | null>(null);
-let pollTimer: number | undefined;
 let dataController: AbortController | null = null;
 let syncQueued = false;
 let initialMediaCleanup: (() => void) | null = null;
 
-const hasMore = $derived(currentPage < totalPages);
+const accessibleMessages = $derived.by(() => {
+	if (authUser?.type === "administrator") return messages;
+	return messages.filter(
+		(message) =>
+			message.localState || !message.status || message.status === "approved",
+	);
+});
+const visibleMessages = $derived(
+	accessibleMessages.length > visibleCount
+		? accessibleMessages.slice(accessibleMessages.length - visibleCount)
+		: accessibleMessages,
+);
+const hiddenMessageCount = $derived(
+	accessibleMessages.length - visibleMessages.length,
+);
 const isSending = $derived(
 	messages.some((message) => message.localState === "sending"),
 );
 const chatMembers = $derived.by(() => {
 	const members = new Map<
 		string,
-		Pick<GuestbookMessage, "nick" | "avatar" | "link" | "isAdmin">
+		Pick<GuestbookMessage, "nick" | "avatar" | "link" | "label" | "isAdmin">
 	>();
-	for (const message of messages) {
+	for (const message of accessibleMessages) {
 		const key = `${message.nick.trim().toLocaleLowerCase()}|${message.avatar}`;
 		const current = members.get(key);
-		if (!current || message.isAdmin || (!current.link && message.link)) {
-			members.set(key, {
-				nick: message.nick,
-				avatar: message.avatar,
-				link: message.link || current?.link,
-				isAdmin: message.isAdmin || current?.isAdmin,
-			});
-		}
+		members.set(key, {
+			nick: message.nick || current?.nick || i18n(I18nKey.gbAnonymousVisitor),
+			avatar: message.avatar || current?.avatar || "",
+			link: message.link || current?.link,
+			label: message.label || current?.label,
+			isAdmin: message.isAdmin || current?.isAdmin || false,
+		});
 	}
 	return [...members.values()].sort(
 		(left, right) => Number(right.isAdmin) - Number(left.isAdmin),
 	);
 });
+const stationMembers = $derived(chatMembers.filter((member) => member.isAdmin));
+const guestMembers = $derived(chatMembers.filter((member) => !member.isAdmin));
+const pendingAuditMessages = $derived(
+	authUser?.type === "administrator"
+		? messages.filter(
+				(message) => message.status === "waiting" && !message.localState,
+			)
+		: [],
+);
+const pendingAuditCount = $derived(pendingAuditMessages.length);
+
+function handleChatKeydown(event: KeyboardEvent) {
+	if (event.key !== "Escape") return;
+	sidebarOpen = false;
+	auditSidebarOpen = false;
+}
+
+function handlePopoverPointerdown(event: PointerEvent) {
+	const target = event.target;
+	if (!(target instanceof Node)) return;
+	if (
+		sidebarOpen &&
+		!memberPanel?.contains(target) &&
+		!memberToggle?.contains(target)
+	) {
+		sidebarOpen = false;
+	}
+	if (
+		auditSidebarOpen &&
+		!auditPanel?.contains(target) &&
+		!auditToggle?.contains(target)
+	) {
+		auditSidebarOpen = false;
+	}
+}
 
 function canManageMessage(message: GuestbookMessage): boolean {
 	if (!authUser?.token || !message.objectId || message.localState) return false;
@@ -127,14 +185,26 @@ function canManageMessage(message: GuestbookMessage): boolean {
 	);
 }
 
-function handleChatKeydown(event: KeyboardEvent) {
-	if (event.key !== "Escape") return;
-	sidebarOpen = false;
+async function openNotice() {
+	await tick();
+	if (!noticeDialog?.open) noticeDialog?.showModal();
+	document.body.style.overflow = "hidden";
+}
+
+function closeNotice() {
+	if (noticeDialog?.open) noticeDialog.close();
+	document.body.style.overflow = "";
+}
+
+async function openAnnouncementFromNotice(
+	announcement: GuestbookAnnouncementItem,
+) {
+	closeNotice();
+	await openAnnouncement(announcement);
 }
 
 async function openAnnouncement(announcement: GuestbookAnnouncementItem) {
 	selectedAnnouncement = announcement;
-	sidebarOpen = false;
 	await tick();
 	if (!announcementDialog?.open) announcementDialog?.showModal();
 	document.body.style.overflow = "hidden";
@@ -200,6 +270,74 @@ function removeStoredValue(storage: Storage, key: string) {
 	} catch {
 		// The in-memory state remains authoritative for the current page.
 	}
+}
+
+function readPendingMessages(): GuestbookMessage[] {
+	const list = readStoredValue<unknown>(localStorage, PENDING_STORAGE_KEY);
+	if (!Array.isArray(list)) return [];
+	const now = Date.now();
+	const MAX_PENDING_AGE_MS = 7 * 24 * 60 * 60 * 1000;
+	return list.filter((item): item is GuestbookMessage => {
+		if (!item || typeof item !== "object") return false;
+		const msg = item as GuestbookMessage;
+		return (
+			typeof msg.id === "string" &&
+			typeof msg.nick === "string" &&
+			typeof msg.body === "string" &&
+			typeof msg.createdAt === "number" &&
+			now - msg.createdAt < MAX_PENDING_AGE_MS
+		);
+	});
+}
+
+function writePendingMessages(list: GuestbookMessage[]) {
+	writeStoredValue(localStorage, PENDING_STORAGE_KEY, list);
+}
+
+function addPendingMessage(message: GuestbookMessage) {
+	const current = readPendingMessages();
+	const filtered = current.filter(
+		(item) =>
+			item.id !== message.id &&
+			(!message.objectId || item.objectId !== message.objectId),
+	);
+	writePendingMessages([...filtered, message]);
+}
+
+function removePendingMessage(idOrObjectId: string) {
+	const current = readPendingMessages();
+	const filtered = current.filter(
+		(item) => item.id !== idOrObjectId && item.objectId !== idOrObjectId,
+	);
+	writePendingMessages(filtered);
+}
+
+function mergePendingMessages(
+	serverMessages: GuestbookMessage[],
+): GuestbookMessage[] {
+	const localPending = readPendingMessages();
+	if (localPending.length === 0) return serverMessages;
+
+	const approvedIds = new Set(
+		serverMessages
+			.filter((m) => m.status === "approved" || !m.status)
+			.flatMap((m) => [m.id, m.objectId].filter(Boolean) as string[]),
+	);
+
+	const stillPending = localPending.filter(
+		(p) =>
+			!approvedIds.has(p.id) && (!p.objectId || !approvedIds.has(p.objectId)),
+	);
+
+	if (stillPending.length !== localPending.length) {
+		writePendingMessages(stillPending);
+	}
+
+	if (authUser?.type === "administrator") {
+		return serverMessages;
+	}
+
+	return mergeGuestbookMessages(serverMessages, stillPending);
 }
 
 function isAuthUser(value: unknown): value is GuestbookAuthUser {
@@ -284,12 +422,12 @@ function removeLoginTokenFromURL() {
 }
 
 async function restoreWalineRedirectLogin(token: string) {
-	if (!serverURL) throw new Error("Waline 服务地址未配置，暂时无法登录");
+	if (!serverURL) throw new Error(i18n(I18nKey.gbServerNotConfiguredLogin));
 	const response = await fetch(
 		`${serverURL.replace(/\/+$/u, "")}/api/token?lang=${encodeURIComponent(lang)}`,
 		{ headers: { Authorization: `Bearer ${token}` } },
 	);
-	if (!response.ok) throw new Error("登录信息验证失败，请重新登录");
+	if (!response.ok) throw new Error(i18n(I18nKey.gbLoginVerifyFailed));
 
 	const result = (await response.json()) as WalineTokenResponse;
 	const user =
@@ -297,7 +435,7 @@ async function restoreWalineRedirectLogin(token: string) {
 			? { ...(result.data as Record<string, unknown>), token, remember: false }
 			: null;
 	if (!isAuthUser(user)) {
-		throw new Error(result.errmsg || "登录信息已失效，请重新登录");
+		throw new Error(result.errmsg || i18n(I18nKey.gbLoginExpired));
 	}
 
 	authUser = user;
@@ -324,54 +462,94 @@ function queueLatestSync() {
 function handleAuthenticationError(error: unknown): boolean {
 	if (!authUser || !isGuestbookAuthError(error)) return false;
 	clearAuthentication();
-	composerError = "登录状态已失效，请重新登录";
+	composerError = i18n(I18nKey.gbAuthExpired);
 	return true;
 }
 
-async function fetchPage(page: number, signal?: AbortSignal) {
-	if (!serverURL) throw new Error("Waline 服务地址未配置");
-	return getComment({
-		serverURL,
-		lang,
-		path: CHANNEL_PATH,
-		page,
-		pageSize: PAGE_SIZE,
-		sortBy: "insertedAt_desc",
-		token: authUser?.token,
-		signal,
-	});
+async function fetchAllMessages(signal?: AbortSignal): Promise<{
+	items: GuestbookMessage[];
+	incomplete: boolean;
+}> {
+	if (!serverURL) throw new Error(i18n(I18nKey.gbServerNotConfigured));
+
+	const collected = new Map<string, GuestbookMessage>();
+	let totalCount = 0;
+	let incomplete = false;
+	let responded = false;
+	let firstError: unknown = null;
+
+	// 服务端遇到 mail 为 null 的历史留言会在算头像时抛错、整页 500。
+	// 所以失败时把页区间对半重取，只丢掉单条也取不回来的那几条。
+	const collect = async (page: number, pageSize: number): Promise<void> => {
+		try {
+			const response = await getComment({
+				serverURL,
+				lang,
+				path: CHANNEL_PATH,
+				page,
+				pageSize,
+				sortBy: "insertedAt_desc",
+				token: authUser?.token,
+				signal,
+			});
+			responded = true;
+			totalCount ||= response.count;
+			for (const message of flattenGuestbookComments(response.data)) {
+				collected.set(message.id, message);
+			}
+		} catch (error) {
+			if (signal?.aborted) throw error;
+			firstError ||= error;
+			if (pageSize <= 1) {
+				incomplete = true;
+				return;
+			}
+			await collect(page * 2 - 1, pageSize / 2);
+			await collect(page * 2, pageSize / 2);
+		}
+	};
+
+	await collect(1, SYNC_PAGE_SIZE);
+	// 一次都没成功过就不是“缺几条”而是整站取不到，交给调用方走加载失败。
+	if (!responded && firstError) throw firstError;
+	const pageCount = Math.ceil(totalCount / SYNC_PAGE_SIZE) || 1;
+	for (let page = 2; page <= pageCount; page += 1) {
+		await collect(page, SYNC_PAGE_SIZE);
+	}
+
+	return { items: [...collected.values()], incomplete };
 }
+
+let autoNoticeShown = false;
 
 async function loadInitial() {
 	if (isOffline) {
 		initialLoading = false;
-		initialError = "当前处于离线状态，恢复网络后将自动加载";
+		initialError = i18n(I18nKey.gbOfflineInitial);
 		return;
 	}
 	dataController?.abort();
 	const controller = new AbortController();
 	dataController = controller;
 	syncing = false;
-	loadingOlder = false;
 	initialLoading = true;
 	initialError = "";
 	syncError = "";
 
 	try {
-		const response = await fetchPage(1, controller.signal);
+		const { items, incomplete } = await fetchAllMessages(controller.signal);
 		if (dataController !== controller) return;
-		messages = mergeGuestbookMessages(
-			messages,
-			flattenGuestbookComments(response.data, adminNicknames),
-		);
-		currentPage = 1;
-		totalPages = response.totalPages;
-		totalCount = response.count;
+		messages = mergeGuestbookMessages(messages, mergePendingMessages(items));
 		lastSyncedAt = Date.now();
 		initialLoading = false;
+		if (incomplete) syncError = i18n(I18nKey.gbHistoryIncomplete);
 		await tick();
 		scrollToBottom(false);
 		preserveInitialBottomWhileMediaLoads();
+		if (!autoNoticeShown && announcements[0]) {
+			autoNoticeShown = true;
+			void openAnnouncement(announcements[0]);
+		}
 	} catch (error) {
 		if (controller.signal.aborted || dataController !== controller) return;
 		const authenticationExpired = handleAuthenticationError(error);
@@ -411,16 +589,20 @@ async function syncLatest() {
 	);
 
 	try {
-		const response = await fetchPage(1, controller.signal);
+		const { items, incomplete } = await fetchAllMessages(controller.signal);
 		if (dataController !== controller) return;
-		const incoming = flattenGuestbookComments(response.data);
+		const incoming = mergePendingMessages(items);
 		const freshCount = incoming.filter(
-			(message) => !knownIds.has(message.id),
+			(message) =>
+				!knownIds.has(message.id) &&
+				(authUser?.type === "administrator" ||
+					message.localState ||
+					!message.status ||
+					message.status === "approved"),
 		).length;
 		messages = mergeGuestbookMessages(messages, incoming);
-		totalPages = response.totalPages;
-		totalCount = response.count;
 		lastSyncedAt = Date.now();
+		if (incomplete) syncError = i18n(I18nKey.gbHistoryIncomplete);
 		await tick();
 
 		if (freshCount > 0 && wasNearBottom) scrollToBottom(true);
@@ -439,96 +621,53 @@ async function syncLatest() {
 	}
 }
 
-async function loadOlder() {
-	if (!hasMore || loadingOlder || !messageList || dataController) return;
-	const controller = new AbortController();
-	dataController = controller;
-	loadingOlder = true;
-	const previousHeight = messageList.scrollHeight;
-	const nextPage = currentPage + 1;
-
-	try {
-		const response = await fetchPage(nextPage, controller.signal);
-		if (dataController !== controller) return;
-		messages = mergeGuestbookMessages(
-			messages,
-			flattenGuestbookComments(response.data, adminNicknames),
-		);
-		currentPage = nextPage;
-		totalPages = response.totalPages;
-		totalCount = response.count;
-		await tick();
-		messageList.scrollTop += messageList.scrollHeight - previousHeight;
-	} catch (error) {
-		if (controller.signal.aborted || dataController !== controller) return;
-		const authenticationExpired = handleAuthenticationError(error);
-		if (authenticationExpired) syncQueued = true;
-		const message = getGuestbookErrorMessage(error);
-		if (message && !authenticationExpired) syncError = message;
-	} finally {
-		if (dataController === controller) {
-			loadingOlder = false;
-			finishDataRequest(controller);
-		}
-	}
-}
-
-function startPolling() {
-	if (pollTimer) window.clearInterval(pollTimer);
-	pollTimer = undefined;
-	if (document.visibilityState !== "visible" || !navigator.onLine) return;
-	pollTimer = window.setInterval(() => {
-		if (document.visibilityState === "visible" && navigator.onLine) {
-			void syncLatest();
-		}
-	}, POLL_INTERVAL);
-}
-
 function handleVisibilityChange() {
-	if (document.visibilityState === "visible") {
-		queueLatestSync();
-		startPolling();
-		return;
+	// 兜底：首载在后台标签页失败/未完成时，恢复可见后补跑一次；后续刷新一律手动
+	if (document.visibilityState !== "visible") return;
+	if (!initialLoadQueued && !lastSyncedAt && !initialLoading) {
+		initialLoadQueued = true;
+		void loadInitial();
 	}
-	if (pollTimer) window.clearInterval(pollTimer);
-	pollTimer = undefined;
 }
 
 function handleOnline() {
 	isOffline = false;
-	queueLatestSync();
-	startPolling();
+	syncError = "";
 }
 
 function handleOffline() {
 	isOffline = true;
-	syncError = "网络已断开，恢复连接后将自动同步";
-	if (pollTimer) window.clearInterval(pollTimer);
-	pollTimer = undefined;
+	syncError = i18n(I18nKey.gbNetworkDisconnected);
 	dataController?.abort();
 }
 
 function isNearBottom(): boolean {
-	if (!messageList) return true;
-	return (
-		messageList.scrollHeight -
-			messageList.scrollTop -
-			messageList.clientHeight <
-		120
-	);
+	const doc = document.documentElement;
+	return doc.scrollHeight - window.scrollY - doc.clientHeight < 120;
 }
 
 function scrollToBottom(smooth = true) {
-	if (!messageList) return;
 	const reduceMotion = window.matchMedia(
 		"(prefers-reduced-motion: reduce)",
 	).matches;
-	messageList.scrollTo({
-		top: messageList.scrollHeight,
-		behavior: smooth && !reduceMotion ? "smooth" : "auto",
+	window.scrollTo({
+		top: document.documentElement.scrollHeight,
+		behavior: smooth && !reduceMotion ? "smooth" : "instant",
 	});
 	newMessageCount = 0;
 	showScrollToBottom = false;
+}
+
+// 本地展开更早的消息：数据已经全量在手，不再发请求；补回顶部高度后按锚点复位滚动
+async function revealOlderMessages() {
+	const anchorFromBottom =
+		document.documentElement.scrollHeight - window.scrollY;
+	visibleCount += VISIBLE_WINDOW;
+	await tick();
+	window.scrollTo({
+		top: document.documentElement.scrollHeight - anchorFromBottom,
+		behavior: "instant",
+	});
 }
 
 function preserveInitialBottomWhileMediaLoads() {
@@ -582,9 +721,7 @@ function preserveInitialBottomWhileMediaLoads() {
 	initialMediaCleanup = cleanup;
 }
 
-function handleMessageScroll() {
-	if (!messageList) return;
-	if (messageList.scrollTop < 72 && hasMore) void loadOlder();
+function handleWindowScroll() {
 	const nearBottom = isNearBottom();
 	showScrollToBottom = !nearBottom;
 	if (nearBottom) newMessageCount = 0;
@@ -600,19 +737,6 @@ function formatMessageTime(value: number): string {
 	}).format(value);
 }
 
-function formatSyncStatus(): string {
-	if (isOffline) return "离线";
-	if (syncing) return "同步中";
-	if (syncError) return "同步失败";
-	if (!lastSyncedAt) return "等待同步";
-	return `同步于 ${new Intl.DateTimeFormat("zh-CN", {
-		hour: "2-digit",
-		minute: "2-digit",
-		second: "2-digit",
-		hour12: false,
-	}).format(lastSyncedAt)}`;
-}
-
 function dateKey(value: number): string {
 	return new Intl.DateTimeFormat("zh-CN", {
 		year: "numeric",
@@ -625,16 +749,17 @@ function dateLabel(value: number): string {
 	const today = new Date();
 	const yesterday = new Date(today);
 	yesterday.setDate(today.getDate() - 1);
-	if (dateKey(value) === dateKey(today.getTime())) return "今天";
-	if (dateKey(value) === dateKey(yesterday.getTime())) return "昨天";
+	if (dateKey(value) === dateKey(today.getTime())) return i18n(I18nKey.gbToday);
+	if (dateKey(value) === dateKey(yesterday.getTime()))
+		return i18n(I18nKey.gbYesterday);
 	return dateKey(value);
 }
 
 function shouldShowDate(index: number): boolean {
 	return (
 		index === 0 ||
-		dateKey(messages[index - 1].createdAt) !==
-			dateKey(messages[index].createdAt)
+		dateKey(visibleMessages[index - 1].createdAt) !==
+			dateKey(visibleMessages[index].createdAt)
 	);
 }
 
@@ -644,13 +769,17 @@ function selectReply(message: GuestbookMessage) {
 
 async function jumpToQuotedMessage(message: GuestbookMessage) {
 	if (!message.replyToId) return;
-	let target = messages.find((candidate) => candidate.id === message.replyToId);
-
-	while (!target && hasMore && !loadingOlder) {
-		await loadOlder();
-		target = messages.find((candidate) => candidate.id === message.replyToId);
+	const targetIndex = accessibleMessages.findIndex(
+		(candidate) => candidate.id === message.replyToId,
+	);
+	// 目标可能在显示窗口之外，先把它纳入窗口再定位，否则拿不到节点
+	if (
+		targetIndex > -1 &&
+		accessibleMessages.length - targetIndex > visibleCount
+	) {
+		visibleCount = accessibleMessages.length - targetIndex;
+		await tick();
 	}
-
 	const element = document.getElementById(
 		`guestbook-message-${message.replyToId}`,
 	);
@@ -667,43 +796,66 @@ async function jumpToQuotedMessage(message: GuestbookMessage) {
 	window.setTimeout(() => element.classList.remove("is-highlighted"), 1600);
 }
 
+function jumpToMessage(targetId: string) {
+	const element = document.getElementById(`guestbook-message-${targetId}`);
+	if (!element) return;
+	const reduceMotion = window.matchMedia(
+		"(prefers-reduced-motion: reduce)",
+	).matches;
+	element.scrollIntoView({
+		behavior: reduceMotion ? "auto" : "smooth",
+		block: "center",
+	});
+	element.classList.remove("is-highlighted");
+	requestAnimationFrame(() => element.classList.add("is-highlighted"));
+	window.setTimeout(() => element.classList.remove("is-highlighted"), 1600);
+}
+
+function jumpToNextPendingAudit() {
+	if (pendingAuditMessages.length === 0) return;
+	jumpToMessage(pendingAuditMessages[0].id);
+}
+
 function validateMessageBody(content: string): string {
 	const textLength = getGuestbookTextLength(content);
 	if (textLength < MIN_MESSAGE_LENGTH && !hasGuestbookImage(content)) {
-		return `消息至少需要 ${MIN_MESSAGE_LENGTH} 个字符`;
+		return i18n(I18nKey.gbMsgMinLength).replace(
+			"{min}",
+			String(MIN_MESSAGE_LENGTH),
+		);
 	}
 	if (textLength > MAX_MESSAGE_LENGTH) {
-		return `消息不能超过 ${MAX_MESSAGE_LENGTH} 个字符`;
+		return i18n(I18nKey.gbMsgMaxLength).replace(
+			"{max}",
+			String(MAX_MESSAGE_LENGTH),
+		);
 	}
 	if (hasGuestbookReplyMarker(content)) {
-		return "消息内容不能以系统引用标记开头";
+		return i18n(I18nKey.gbMsgReplyMarker);
 	}
 	return "";
 }
 
 function validateComposer(content: string): string {
-	if (loginMode === "force" && !authUser) return "请先登录后再发送消息";
+	if (loginMode === "force" && !authUser) return i18n(I18nKey.gbLoginRequired);
 	if (!authUser && profile.nick.trim().length < 2) {
 		return profile.nick.trim()
-			? "游客昵称至少需要 2 个字符"
+			? i18n(I18nKey.gbNicknameMinLength).replace("{min}", "2")
 			: loginMode === "disable"
-				? "请先通过游客访问填写资料后再发送"
-				: "请选择游客访问并填写资料，或登录后发送";
-	}
-	if (!authUser && !profile.mail.trim()) {
-		return "请先在游客资料中填写邮箱后再发送";
+				? i18n(I18nKey.gbGuestProfileRequiredDisabled)
+				: i18n(I18nKey.gbGuestProfileRequired);
 	}
 	if (profile.mail && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/u.test(profile.mail)) {
-		return "邮箱格式不正确";
+		return i18n(I18nKey.gbEmailInvalid);
 	}
 	if (profile.link) {
 		try {
 			const website = new URL(profile.link);
 			if (website.protocol !== "http:" && website.protocol !== "https:") {
-				return "网站地址仅支持 http 或 https";
+				return i18n(I18nKey.gbLinkProtocolInvalid);
 			}
 		} catch {
-			return "网站地址格式不正确";
+			return i18n(I18nKey.gbLinkInvalid);
 		}
 	}
 	return validateMessageBody(content);
@@ -725,18 +877,17 @@ async function sendMessage(
 	const selectedTarget = replyTarget;
 	const target = selectedTarget?.objectId ? selectedTarget : null;
 	const tempId = `local-${Date.now()}`;
-	const senderNick = authUser?.display_name || profile.nick || "访客";
 	const optimistic: GuestbookMessage = {
 		id: tempId,
-		nick: senderNick,
+		nick: authUser?.display_name || profile.nick || i18n(I18nKey.gbVisitor),
 		avatar: authUser?.avatar || "",
 		link: authUser?.url || profile.link.trim() || undefined,
-		body: target ? `@${target.nick} ${content}` : content,
+		body: content,
 		createdAt: Date.now(),
-		isAdmin:
-			authUser?.type === "administrator" || adminNicknames.has(senderNick),
+		isAdmin: false,
 		replyToId: target?.id,
 		replyToNick: target?.nick,
+		replyTargetId: target?.id,
 		localState: "sending",
 	};
 
@@ -757,23 +908,27 @@ async function sendMessage(
 			token: authUser?.token,
 			comment: {
 				nick: authUser?.display_name || profile.nick.trim(),
-				mail: authUser?.email || profile.mail.trim() || undefined,
+				// 必须下发空串而不是 undefined：服务端 gravatar 模板对 null 跑 trim 会 500
+				mail: authUser?.email || profile.mail.trim() || "",
 				link: authUser?.url || profile.link.trim() || undefined,
-				comment: buildGuestbookMessageBody(content, target),
+				comment: content,
 				ua: navigator.userAgent,
 				url: CHANNEL_PATH,
+				...buildGuestbookReplyFields(target),
 			},
 		});
 
 		if (response.errno || !response.data) {
-			throw new Error(response.errmsg || "消息发送失败");
+			throw new Error(response.errmsg || i18n(I18nKey.gbSendFailed));
+		}
+
+		const createdMessage = normalizeGuestbookComment(response.data);
+		if (createdMessage.status === "waiting") {
+			addPendingMessage(createdMessage);
 		}
 
 		messages = messages.filter((message) => message.id !== tempId);
-		messages = mergeGuestbookMessages(messages, [
-			normalizeGuestbookComment(response.data, adminNicknames),
-		]);
-		totalCount += 1;
+		messages = mergeGuestbookMessages(messages, [createdMessage]);
 		initialError = "";
 		syncError = "";
 		lastSyncedAt = Date.now();
@@ -782,7 +937,8 @@ async function sendMessage(
 		queueLatestSync();
 	} catch (error) {
 		handleAuthenticationError(error);
-		const failureReason = getGuestbookErrorMessage(error) || "消息发送失败";
+		const failureReason =
+			getGuestbookErrorMessage(error) || i18n(I18nKey.gbSendFailed);
 		messages = messages.map((message) =>
 			message.id === tempId
 				? { ...message, localState: "failed", failureReason }
@@ -793,16 +949,11 @@ async function sendMessage(
 }
 
 async function retryMessage(message: GuestbookMessage) {
-	const target = message.replyToId
-		? (messages.find((candidate) => candidate.id === message.replyToId) ?? null)
+	const retryTargetId = message.replyTargetId || message.replyToId;
+	replyTarget = retryTargetId
+		? (messages.find((candidate) => candidate.id === retryTargetId) ?? null)
 		: null;
-	replyTarget = target;
-	const prefix = target ? `@${target.nick} ` : "";
-	const content =
-		prefix && message.body.startsWith(prefix)
-			? message.body.slice(prefix.length)
-			: message.body;
-	await sendMessage(message.id, undefined, content);
+	await sendMessage(message.id, undefined, message.body);
 }
 
 function discardMessage(message: GuestbookMessage) {
@@ -868,7 +1019,7 @@ async function saveEditedMessage(message: GuestbookMessage) {
 		handleAuthenticationError(error);
 		messageActionError = {
 			id: message.id,
-			message: getGuestbookErrorMessage(error) || "消息修改失败，请稍后重试",
+			message: getGuestbookErrorMessage(error) || i18n(I18nKey.gbEditFailed),
 		};
 	} finally {
 		mutatingMessageId = null;
@@ -897,7 +1048,7 @@ async function confirmDeleteMessage() {
 			objectId: target.objectId,
 		});
 		messages = messages.filter((message) => message.id !== target.id);
-		totalCount = Math.max(0, totalCount - 1);
+		// totalCount removed
 		if (replyTarget?.id === target.id) replyTarget = null;
 		if (editingMessageId === target.id) {
 			editingMessageId = null;
@@ -912,7 +1063,61 @@ async function confirmDeleteMessage() {
 		handleAuthenticationError(error);
 		messageActionError = {
 			id: target.id,
-			message: getGuestbookErrorMessage(error) || "消息删除失败，请稍后重试",
+			message: getGuestbookErrorMessage(error) || i18n(I18nKey.gbDeleteFailed),
+		};
+	} finally {
+		mutatingMessageId = null;
+	}
+}
+
+async function updateMessageStatus(
+	message: GuestbookMessage,
+	nextStatus: "approved" | "waiting" | "spam",
+) {
+	if (
+		!authUser?.token ||
+		authUser.type !== "administrator" ||
+		!message.objectId ||
+		mutatingMessageId
+	) {
+		return;
+	}
+
+	mutatingMessageId = message.id;
+	messageActionError = null;
+	try {
+		await updateComment({
+			serverURL,
+			lang,
+			token: authUser.token,
+			objectId: message.objectId,
+			comment: {
+				status: nextStatus,
+			},
+		});
+
+		messages = messages.map((candidate) =>
+			candidate.id === message.id
+				? { ...candidate, status: nextStatus }
+				: candidate,
+		);
+
+		if (nextStatus === "approved") {
+			removePendingMessage(message.id);
+			if (message.objectId) removePendingMessage(message.objectId);
+		} else if (nextStatus === "waiting") {
+			addPendingMessage({ ...message, status: "waiting" });
+		} else if (nextStatus === "spam") {
+			removePendingMessage(message.id);
+			if (message.objectId) removePendingMessage(message.objectId);
+		}
+
+		queueLatestSync();
+	} catch (error) {
+		handleAuthenticationError(error);
+		messageActionError = {
+			id: message.id,
+			message: getGuestbookErrorMessage(error) || i18n(I18nKey.gbEditFailed),
 		};
 	} finally {
 		mutatingMessageId = null;
@@ -922,7 +1127,7 @@ async function confirmDeleteMessage() {
 async function handleLogin() {
 	if (loggingIn) return;
 	if (!serverURL) {
-		composerError = "Waline 服务地址未配置，暂时无法登录";
+		composerError = i18n(I18nKey.gbServerNotConfiguredLogin);
 		return;
 	}
 	loggingIn = true;
@@ -930,7 +1135,8 @@ async function handleLogin() {
 
 	try {
 		const user = await loginWithWaline({ serverURL, lang });
-		if (!isAuthUser(user)) throw new Error("登录返回信息无效，请重新登录");
+		if (!isAuthUser(user))
+			throw new Error(i18n(I18nKey.gbLoginInvalidResponse));
 		authUser = user;
 		persistAuthentication(user);
 		await loadInitial();
@@ -938,7 +1144,7 @@ async function handleLogin() {
 		composerError =
 			error instanceof Error && error.message
 				? error.message
-				: "登录失败，请稍后重试";
+				: i18n(I18nKey.gbLoginFailed);
 	} finally {
 		loggingIn = false;
 	}
@@ -953,7 +1159,7 @@ async function initializeGuestbook(returnedToken: string | null) {
 			composerError =
 				error instanceof Error && error.message
 					? error.message
-					: "登录信息验证失败，请重新登录";
+					: i18n(I18nKey.gbLoginVerifyFailed);
 		} finally {
 			removeLoginTokenFromURL();
 			loggingIn = false;
@@ -964,12 +1170,9 @@ async function initializeGuestbook(returnedToken: string | null) {
 
 	if (isOffline) {
 		initialLoading = false;
-		initialError = "当前处于离线状态，恢复网络后将自动加载";
-	} else if (document.visibilityState === "visible") {
-		await loadInitial();
+		initialError = i18n(I18nKey.gbOfflineInitial);
 	} else {
-		initialLoading = false;
-		initialError = "页面恢复可见后将自动加载聊天室";
+		await loadInitial();
 	}
 }
 
@@ -990,6 +1193,8 @@ function handleDraftChange(nextDraft: string) {
 	composerError = "";
 }
 
+let initialLoadQueued = false;
+
 onMount(() => {
 	const storedProfile = readStoredValue<unknown>(
 		localStorage,
@@ -1002,13 +1207,11 @@ onMount(() => {
 	isOffline = !navigator.onLine;
 	const returnedToken = new URL(window.location.href).searchParams.get("token");
 	void initializeGuestbook(returnedToken);
-	startPolling();
 	document.addEventListener("visibilitychange", handleVisibilityChange);
 	window.addEventListener("online", handleOnline);
 	window.addEventListener("offline", handleOffline);
 
 	return () => {
-		if (pollTimer) window.clearInterval(pollTimer);
 		dataController?.abort();
 		initialMediaCleanup?.();
 		if (announcementDialog?.open) announcementDialog.close();
@@ -1021,74 +1224,20 @@ onMount(() => {
 });
 </script>
 
-<svelte:window onkeydown={handleChatKeydown} />
+<svelte:window
+	onkeydown={handleChatKeydown}
+	onpointerdown={handlePopoverPointerdown}
+	onscroll={handleWindowScroll}
+	onresize={handleWindowScroll}
+/>
 
-<section class="guestbook-chat" aria-label="留言板">
-	<header class="guestbook-chat__header">
-		<div class="guestbook-chat__channel">
-			<button
-				class:is-syncing={syncing}
-				class="guestbook-chat__mobile-channel-refresh"
-				type="button"
-				onclick={() => void syncLatest()}
-				disabled={syncing || initialLoading || isOffline}
-				aria-label={syncing ? "留言板正在刷新" : "刷新留言板"}
-				aria-busy={syncing}
-			>
-				<span>留言板</span>
-				<span class:is-visible={syncing} class="guestbook-chat__mobile-refresh-icon">
-					<RefreshCw size={15} aria-hidden="true" />
-				</span>
-			</button>
-			<div class="guestbook-chat__desktop-channel-details">
-				<div class="guestbook-chat__title-row">
-					<h2>留言板</h2>
-					<span>· {initialLoading ? "--" : totalCount} 条留言</span>
-					<div class="guestbook-chat__sync">
-						<div
-							class:is-failed={Boolean(syncError)}
-							class="guestbook-chat__status"
-							aria-live="polite"
-						>
-							<span class:is-offline={isOffline}></span>
-							{formatSyncStatus()} · 30 s
-						</div>
-						<button
-							class:is-syncing={syncing} class="guestbook-chat__refresh"
-							type="button"
-							onclick={() => void syncLatest()}
-							disabled={syncing || initialLoading || isOffline}
-							aria-label="立即刷新消息"
-							title="立即刷新"
-						>
-							<RefreshCw size={17} aria-hidden="true" />
-						</button>
-					</div>
-				</div>
-			</div>
-		</div>
-
-		<div class="guestbook-chat__actions">
-			<button
-				class="guestbook-chat__sidebar-toggle"
-				type="button"
-				onclick={() => (sidebarOpen = !sidebarOpen)}
-				aria-expanded={sidebarOpen}
-				aria-controls="guestbook-chat-sidebar"
-				title="群公告与聊天成员"
-			>
-				<Users size={18} aria-hidden="true" />
-				<span>{chatMembers.length}</span>
-			</button>
-		</div>
-	</header>
-
+<section class="guestbook-chat" aria-label={i18n(I18nKey.gbTitle)}>
 	<div class="guestbook-chat__workspace">
 		<div class="guestbook-chat__conversation">
 			{#if initialLoading}
 				<div
 					class="guestbook-chat__loading"
-					aria-label="正在加载聊天消息"
+					aria-label={i18n(I18nKey.gbLoadingAria)}
 					aria-busy="true"
 				>
 					{#each Array(6) as _, index}
@@ -1105,46 +1254,39 @@ onMount(() => {
 			{:else if initialError && messages.length === 0}
 				<div class="guestbook-chat__state" role="alert">
 					<AlertCircle size={34} aria-hidden="true" />
-					<h3>聊天室加载失败</h3>
+					<h3>{i18n(I18nKey.gbLoadFailedTitle)}</h3>
 					<p>{initialError}</p>
 					<button type="button" onclick={() => void loadInitial()}>
-						<RotateCcw size={17} aria-hidden="true" />重新加载
+						<RotateCcw size={17} aria-hidden="true" />{i18n(I18nKey.gbReload)}
 					</button>
 				</div>
 			{:else}
 				<div
 					class="guestbook-chat__messages custom-scrollbar"
 					bind:this={messageList}
-					onscroll={handleMessageScroll}
 					aria-live="polite"
 					aria-relevant="additions"
 				>
-					<div class="guestbook-chat__history">
-						{#if hasMore}
-							<button
-								type="button"
-								onclick={() => void loadOlder()}
-								disabled={loadingOlder}
-							>
-								{#if loadingOlder}
-									<LoaderCircle class="is-spinning" size={15} aria-hidden="true" />
-								{/if}
-								{loadingOlder ? "正在加载历史消息" : "加载更早消息"}
-							</button>
-						{:else if messages.length > 0}
-							<span>已经到最早一条消息</span>
-						{/if}
-					</div>
+					{#if hiddenMessageCount > 0}
+						<button
+							class="guestbook-chat__reveal-older"
+							type="button"
+							onclick={() => void revealOlderMessages()}
+						>
+							<ChevronUp size={15} aria-hidden="true" />
+							{i18n(I18nKey.gbShowOlder).replace("{count}", String(hiddenMessageCount))}
+						</button>
+					{/if}
 
-					{#if messages.length === 0}
+					{#if accessibleMessages.length === 0}
 						<div class="guestbook-chat__empty">
 							<div class="guestbook-chat__empty-mark">GB</div>
-							<h3>还没有人发言</h3>
-							<p>发送第一条消息，开启这段对话。</p>
+							<h3>{i18n(I18nKey.gbEmptyTitle)}</h3>
+							<p>{i18n(I18nKey.gbEmptyBody)}</p>
 						</div>
 					{/if}
 
-					{#each messages as message, index (message.id)}
+					{#each visibleMessages as message, index (message.id)}
 						{#if shouldShowDate(index)}
 							<div class="guestbook-chat__date">
 								<span>{dateLabel(message.createdAt)}</span>
@@ -1154,10 +1296,11 @@ onMount(() => {
 						<GuestbookChatMessage
 							{message}
 							referencedMessage={message.replyToId
-								? messages.find((candidate) => candidate.id === message.replyToId)
+								? accessibleMessages.find((candidate) => candidate.id === message.replyToId)
 								: undefined}
 							timeLabel={formatMessageTime(message.createdAt)}
 							canManage={canManageMessage(message)}
+							canAudit={authUser?.type === "administrator"}
 							isEditing={editingMessageId === message.id}
 							isMutating={mutatingMessageId === message.id}
 							{editDraft}
@@ -1170,6 +1313,7 @@ onMount(() => {
 							onEditCancel={cancelEditingMessage}
 							onEditSave={(target) => void saveEditedMessage(target)}
 							onDelete={(target) => void requestDeleteMessage(target)}
+							onChangeStatus={(target, nextStatus) => void updateMessageStatus(target, nextStatus)}
 							onJump={(target) => void jumpToQuotedMessage(target)}
 							onRetry={(target) => void retryMessage(target)}
 							onDiscard={discardMessage}
@@ -1188,8 +1332,11 @@ onMount(() => {
 						type="button"
 						onclick={() => scrollToBottom(true)}
 						aria-label={newMessageCount > 0
-							? `${newMessageCount} 条新消息，回到最新消息`
-							: "回到底部"}
+							? i18n(I18nKey.gbNewMessagesAria).replace(
+									"{count}",
+									String(newMessageCount),
+								)
+							: i18n(I18nKey.gbBackToBottom)}
 					>
 						<ChevronDown size={20} aria-hidden="true" />
 					</button>
@@ -1198,12 +1345,172 @@ onMount(() => {
 				{#if syncError || isOffline}
 					<div class="guestbook-chat__sync-error" role="status">
 						<WifiOff size={15} aria-hidden="true" />
-						<span>{syncError || "当前处于离线状态"}</span>
+						<span>{syncError || i18n(I18nKey.gbOffline)}</span>
 						{#if !isOffline}
-							<button type="button" onclick={() => void syncLatest()}>重试同步</button>
+							<button type="button" onclick={() => void syncLatest()}>{i18n(I18nKey.gbRetrySync)}</button>
 						{/if}
 					</div>
 				{/if}
+
+				{#if sidebarOpen}
+					<button
+						class="guestbook-chat__sidebar-overlay"
+						type="button"
+						onclick={() => (sidebarOpen = false)}
+						aria-label={i18n(I18nKey.gbCloseMembers)}
+					></button>
+				{/if}
+
+				<aside
+					id="guestbook-chat-sidebar"
+					bind:this={memberPanel}
+					class:is-open={sidebarOpen}
+					class="guestbook-chat__sidebar"
+					aria-label={i18n(I18nKey.gbMembers)}
+				>
+					<div class="guestbook-chat__sidebar-heading">
+						<strong>{i18n(I18nKey.gbMembers)}</strong>
+						<button
+							type="button"
+							onclick={() => (sidebarOpen = false)}
+							aria-label={i18n(I18nKey.gbCloseMembers)}
+						>
+							<X size={18} aria-hidden="true" />
+						</button>
+					</div>
+
+					<section class="guestbook-chat__members" aria-label={i18n(I18nKey.gbMembersListAria)}>
+						<div class="guestbook-chat__member-list custom-scrollbar">
+							{#each [
+								{ id: "admin", title: i18n(I18nKey.gbAdmin), members: stationMembers },
+								{ id: "guest", title: i18n(I18nKey.gbMembers), members: guestMembers },
+							] as group (group.id)}
+								<div class="guestbook-chat__member-group">
+									<div class="guestbook-chat__member-group-title">
+										<strong>{group.title}</strong>
+										<span aria-label={i18n(I18nKey.gbMemberCountAria).replace("{count}", String(group.members.length))}>— {group.members.length}</span>
+									</div>
+
+									<div class="guestbook-chat__member-group-list">
+										{#each group.members as member, memberIdx (`${member.nick}-${member.avatar}-${memberIdx}`)}
+											{#if member.link}
+												<a
+													class="guestbook-chat__member"
+													href={member.link}
+													target="_blank"
+													rel="nofollow noopener noreferrer"
+												>
+													<span class="guestbook-chat__member-avatar">
+														<span>{getGuestbookInitials(member.nick)}</span>
+														{#if member.avatar}<img src={member.avatar} alt="" loading="lazy" />{/if}
+													</span>
+													<span class="guestbook-chat__member-identity">
+														{#if member.label}<small>{member.label}</small>{/if}
+														<span class="guestbook-chat__member-name">{member.nick}</span>
+													</span>
+												</a>
+											{:else}
+												<div class="guestbook-chat__member">
+													<span class="guestbook-chat__member-avatar">
+														<span>{getGuestbookInitials(member.nick)}</span>
+														{#if member.avatar}<img src={member.avatar} alt="" loading="lazy" />{/if}
+													</span>
+													<span class="guestbook-chat__member-identity">
+														{#if member.label}<small>{member.label}</small>{/if}
+														<span class="guestbook-chat__member-name">{member.nick}</span>
+													</span>
+												</div>
+											{/if}
+										{/each}
+									</div>
+								</div>
+							{/each}
+						</div>
+					</section>
+				</aside>
+
+				{#if auditSidebarOpen}
+					<button
+						class="guestbook-chat__sidebar-overlay"
+						type="button"
+						onclick={() => (auditSidebarOpen = false)}
+						aria-label={i18n(I18nKey.announcementClose)}
+					></button>
+				{/if}
+
+				<aside
+					id="guestbook-chat-audit-sidebar"
+					bind:this={auditPanel}
+					class:is-open={auditSidebarOpen}
+					class="guestbook-chat__sidebar guestbook-chat__audit-sidebar"
+					aria-label={i18n(I18nKey.gbPendingList)}
+				>
+					<div class="guestbook-chat__sidebar-heading">
+						<div class="guestbook-chat__audit-sidebar-title">
+							<strong>{i18n(I18nKey.gbPendingList)}</strong>
+							<span>({pendingAuditMessages.length})</span>
+						</div>
+						<button
+							type="button"
+							onclick={() => (auditSidebarOpen = false)}
+							aria-label={i18n(I18nKey.announcementClose)}
+						>
+							<X size={18} aria-hidden="true" />
+						</button>
+					</div>
+
+					<section class="guestbook-chat__audit-section" aria-label={i18n(I18nKey.gbPendingList)}>
+						<div class="guestbook-chat__audit-list custom-scrollbar">
+							{#if pendingAuditMessages.length === 0}
+								<div class="guestbook-chat__audit-empty">
+									<p>{i18n(I18nKey.gbNoPendingMessages)}</p>
+								</div>
+							{:else}
+								{#each pendingAuditMessages as pendingMsg (pendingMsg.id)}
+									<div class="guestbook-chat__audit-item">
+										<button
+											class="guestbook-chat__audit-item-main"
+											type="button"
+											onclick={() => {
+												auditSidebarOpen = false;
+												jumpToMessage(pendingMsg.id);
+											}}
+											title="点击定位到该评论"
+										>
+											<div class="guestbook-chat__audit-item-header">
+												<strong>{pendingMsg.nick}</strong>
+												<time>{formatMessageTime(pendingMsg.createdAt)}</time>
+											</div>
+											<p class="guestbook-chat__audit-item-body">{pendingMsg.body}</p>
+										</button>
+										<div class="guestbook-chat__audit-item-actions">
+											<button
+												type="button"
+												class="guestbook-chat__audit-action-btn guestbook-chat__audit-action-btn--approve"
+												onclick={() => void updateMessageStatus(pendingMsg, "approved")}
+												disabled={mutatingMessageId === pendingMsg.id}
+												title={i18n(I18nKey.gbStatusApproved)}
+												aria-label={i18n(I18nKey.gbStatusApproved)}
+											>
+												<Check size={14} aria-hidden="true" />
+											</button>
+											<button
+												type="button"
+												class="guestbook-chat__audit-action-btn guestbook-chat__audit-action-btn--spam"
+												onclick={() => void updateMessageStatus(pendingMsg, "spam")}
+												disabled={mutatingMessageId === pendingMsg.id}
+												title={i18n(I18nKey.gbStatusSpam)}
+												aria-label={i18n(I18nKey.gbStatusSpam)}
+											>
+												<Ban size={14} aria-hidden="true" />
+											</button>
+										</div>
+									</div>
+								{/each}
+							{/if}
+						</div>
+					</section>
+				</aside>
 
 				<GuestbookChatComposer
 					{profile}
@@ -1223,90 +1530,121 @@ onMount(() => {
 				onSend={(content, attachment) =>
 					sendMessage(undefined, attachment, content)}
 					onToolError={(message) => (composerError = message)}
-				/>
+				>
+					<button
+						class="guestbook-chat__dock-chip"
+						type="button"
+						onclick={() => void openNotice()}
+						aria-label={i18n(I18nKey.announcement)}
+						title={i18n(I18nKey.announcement)}
+					>
+						<Bell size={18} aria-hidden="true" />
+						{#if announcements.length > 0}
+							<span class="guestbook-chat__dock-chip-dot" aria-hidden="true"></span>
+						{/if}
+					</button>
+					<button
+						bind:this={memberToggle}
+						class:is-active={sidebarOpen}
+						class="guestbook-chat__dock-chip"
+						type="button"
+						onclick={() => { sidebarOpen = !sidebarOpen; if (sidebarOpen) auditSidebarOpen = false; }}
+						aria-expanded={sidebarOpen}
+						aria-controls="guestbook-chat-sidebar"
+						aria-label={i18n(I18nKey.gbMembers)}
+						title={i18n(I18nKey.gbMembers)}
+					>
+						<Users size={18} aria-hidden="true" />
+						<span>{chatMembers.length}</span>
+					</button>
+					{#if authUser?.type === "administrator" && pendingAuditCount > 0}
+						<button
+							bind:this={auditToggle}
+							class:is-active={auditSidebarOpen}
+							class="guestbook-chat__dock-chip guestbook-chat__dock-chip--audit"
+							type="button"
+							onclick={() => { auditSidebarOpen = !auditSidebarOpen; if (auditSidebarOpen) sidebarOpen = false; }}
+							aria-expanded={auditSidebarOpen}
+							aria-controls="guestbook-chat-audit-sidebar"
+							aria-label={i18n(I18nKey.gbAuditPendingNotice).replace(
+								"{count}",
+								String(pendingAuditCount),
+							)}
+							title={i18n(I18nKey.gbAuditPendingNotice).replace(
+								"{count}",
+								String(pendingAuditCount),
+							)}
+						>
+							<ShieldCheck size={18} aria-hidden="true" />
+							<span class="guestbook-chat__dock-chip-badge">{pendingAuditCount}</span>
+						</button>
+					{/if}
+					<button
+						class="guestbook-chat__dock-chip"
+						type="button"
+						onclick={() => void syncLatest()}
+						disabled={syncing || initialLoading}
+						aria-label={i18n(I18nKey.gbRefreshNowAria)}
+						title={i18n(I18nKey.gbRefreshNowTitle)}
+					>
+						{#if syncing}
+							<LoaderCircle class="is-spinning" size={18} aria-hidden="true" />
+						{:else}
+							<RefreshCw size={18} aria-hidden="true" />
+						{/if}
+					</button>
+				</GuestbookChatComposer>
 			</div>
 		</div>
 
-		{#if sidebarOpen}
-			<button
-				class="guestbook-chat__sidebar-overlay"
-				type="button"
-				onclick={() => (sidebarOpen = false)}
-				aria-label="关闭群信息"
-			></button>
-		{/if}
+	</div>
 
-		<aside
-			id="guestbook-chat-sidebar"
-			class:is-open={sidebarOpen}
-			class="guestbook-chat__sidebar"
-			aria-label="群信息"
-		>
-			<div class="guestbook-chat__sidebar-heading">
-				<strong>群信息</strong>
+	<dialog
+		bind:this={noticeDialog}
+		class="privacy-modal guestbook-notice-modal"
+		aria-labelledby="guestbook-notice-title"
+		onclose={() => (document.body.style.overflow = "")}
+		oncancel={(event) => {
+			event.preventDefault();
+			closeNotice();
+		}}
+	>
+		<div
+			class="privacy-overlay"
+			role="button"
+			tabindex="-1"
+			aria-label={i18n(I18nKey.announcement)}
+			onclick={closeNotice}
+			onkeydown={(e) => {
+				if (e.key === "Enter" || e.key === " ") closeNotice();
+			}}
+		></div>
+		<div class="privacy-panel guestbook-notice-modal__panel">
+			<div class="privacy-header">
+				<h2 id="guestbook-notice-title" class="privacy-title">
+					{i18n(I18nKey.announcement)}
+				</h2>
 				<button
+					class="privacy-close"
 					type="button"
-					onclick={() => (sidebarOpen = false)}
-					aria-label="关闭群信息"
+					onclick={closeNotice}
+					aria-label={i18n(I18nKey.announcement)}
 				>
-					<X size={18} aria-hidden="true" />
+					<X size={20} aria-hidden="true" />
 				</button>
 			</div>
-
-			<section class="guestbook-chat__announcement-panel" aria-label="群公告">
-				<div class="guestbook-chat__panel-title">
-					<Bell size={16} aria-hidden="true" />群公告
-				</div>
-				{#each announcements as announcement}
+			<div class="privacy-body guestbook-notice-modal__body">
+				{#each announcements as announcement, aIdx (announcement.id || aIdx)}
 					<button
-						class="guestbook-chat__announcement"
 						type="button"
-						onclick={() => void openAnnouncement(announcement)}
+						onclick={() => void openAnnouncementFromNotice(announcement)}
 					>
-						<span>
-							<strong>{announcement.title}</strong>
-							<ChevronRight size={16} aria-hidden="true" />
-						</span>
-						<p>{announcement.summary}</p>
+						{announcement.title}
 					</button>
 				{/each}
-			</section>
-
-			<section class="guestbook-chat__members" aria-label="聊天成员">
-				<div class="guestbook-chat__panel-title">
-					<Users size={16} aria-hidden="true" />聊天成员 <span>{chatMembers.length}</span>
-				</div>
-				<div class="guestbook-chat__member-list custom-scrollbar">
-					{#each chatMembers as member (`${member.nick}-${member.avatar}`)}
-						{#if member.link}
-							<a
-								class="guestbook-chat__member"
-								href={member.link}
-								target="_blank"
-								rel="nofollow noopener noreferrer"
-							>
-								<span class="guestbook-chat__member-avatar">
-									<span>{getGuestbookInitials(member.nick)}</span>
-									{#if member.avatar}<img src={member.avatar} alt="" loading="lazy" />{/if}
-								</span>
-								<span>{member.nick}</span>
-								{#if member.isAdmin}<small>站长</small>{/if}
-							</a>
-						{:else}
-							<div class="guestbook-chat__member">
-								<span class="guestbook-chat__member-avatar">
-									<span>{getGuestbookInitials(member.nick)}</span>
-									{#if member.avatar}<img src={member.avatar} alt="" loading="lazy" />{/if}
-								</span>
-								<span>{member.nick}</span>
-								{#if member.isAdmin}<small>站长</small>{/if}
-							</div>
-						{/if}
-					{/each}
-				</div>
-			</section>
-		</aside>
-	</div>
+			</div>
+		</div>
+	</dialog>
 
 	<dialog
 		bind:this={announcementDialog}
@@ -1318,7 +1656,16 @@ onMount(() => {
 			closeAnnouncement();
 		}}
 	>
-		<div class="privacy-overlay" role="button" tabindex="-1" onclick={closeAnnouncement} onkeydown={(e) => { if (e.key === "Enter" || e.key === " ") closeAnnouncement(); }}></div>
+		<div
+			class="privacy-overlay"
+			role="button"
+			tabindex="-1"
+			aria-label={i18n(I18nKey.gbCloseAnnouncement)}
+			onclick={closeAnnouncement}
+			onkeydown={(e) => {
+				if (e.key === "Enter" || e.key === " ") closeAnnouncement();
+			}}
+		></div>
 		{#if selectedAnnouncement}
 			<div class="privacy-panel">
 				<div class="privacy-header">
@@ -1329,7 +1676,7 @@ onMount(() => {
 						class="privacy-close"
 						type="button"
 						onclick={closeAnnouncement}
-						aria-label="关闭群公告"
+					aria-label={i18n(I18nKey.gbCloseAnnouncement)}
 					>
 						<X size={20} aria-hidden="true" />
 					</button>
@@ -1337,15 +1684,17 @@ onMount(() => {
 				<div class="privacy-body guestbook-announcement-modal__body custom-scrollbar">
 					<p>{selectedAnnouncement.summary}</p>
 					{#if selectedAnnouncement.lead}<p>{selectedAnnouncement.lead}</p>{/if}
-					<ul>
-						{#each selectedAnnouncement.rules as rule}
-							<li>{rule}</li>
-						{/each}
-					</ul>
+					{#if selectedAnnouncement.rules.length > 0}
+						<ul>
+							{#each selectedAnnouncement.rules as rule}
+								<li>{rule}</li>
+							{/each}
+						</ul>
+					{/if}
 				</div>
 				<div class="privacy-footer">
 					<button class="privacy-confirm-btn" type="button" onclick={closeAnnouncement}>
-						我知道了
+						{i18n(I18nKey.gotIt)}
 					</button>
 				</div>
 			</div>
@@ -1365,23 +1714,32 @@ onMount(() => {
 			closeDeleteDialog();
 		}}
 	>
-		<div class="privacy-overlay" role="button" tabindex="-1" onclick={closeDeleteDialog} onkeydown={(e) => { if (e.key === "Enter" || e.key === " ") closeDeleteDialog(); }}></div>
+		<div
+			class="privacy-overlay"
+			role="button"
+			tabindex="-1"
+			aria-label={i18n(I18nKey.gbCloseDeleteConfirm)}
+			onclick={closeDeleteDialog}
+			onkeydown={(e) => {
+				if (e.key === "Enter" || e.key === " ") closeDeleteDialog();
+			}}
+		></div>
 		{#if deleteTarget}
 			<div class="privacy-panel guestbook-delete-modal__panel">
 				<div class="privacy-header">
-					<h2 id="guestbook-delete-title" class="privacy-title">删除消息</h2>
+					<h2 id="guestbook-delete-title" class="privacy-title">{i18n(I18nKey.gbDeleteMessage)}</h2>
 					<button
 						class="privacy-close"
 						type="button"
 						onclick={closeDeleteDialog}
 						disabled={mutatingMessageId === deleteTarget.id}
-						aria-label="关闭删除确认"
+						aria-label={i18n(I18nKey.gbCloseDeleteConfirm)}
 					>
 						<X size={20} aria-hidden="true" />
 					</button>
 				</div>
 				<div class="privacy-body guestbook-delete-modal__body">
-					<p>删除后无法恢复，Waline 服务端也会同步删除这条消息。</p>
+					<p>{i18n(I18nKey.gbDeleteWarning)}</p>
 					<blockquote>{deleteTarget.body.slice(0, 160)}</blockquote>
 					{#if messageActionError?.id === deleteTarget.id}
 						<p class="guestbook-delete-modal__error" role="alert">
@@ -1395,16 +1753,18 @@ onMount(() => {
 						type="button"
 						onclick={closeDeleteDialog}
 						disabled={mutatingMessageId === deleteTarget.id}
-					>
-						取消
-					</button>
+						>
+							{i18n(I18nKey.cancel)}
+						</button>
 					<button
 						class="guestbook-delete-modal__confirm"
 						type="button"
 						onclick={() => void confirmDeleteMessage()}
 						disabled={mutatingMessageId === deleteTarget.id}
 					>
-						{mutatingMessageId === deleteTarget.id ? "删除中" : "确认删除"}
+						{mutatingMessageId === deleteTarget.id
+							? i18n(I18nKey.deleting)
+							: i18n(I18nKey.deleteLabel)}
 					</button>
 				</div>
 			</div>
