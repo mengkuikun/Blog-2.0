@@ -630,6 +630,8 @@ html:has(.guestbook-page) #content-wrapper {
 	border-radius: var(--radius-large);
 	background: color-mix(in srgb, var(--guestbook-dock-bg) 82%, transparent);
 	backdrop-filter: blur(1.5rem) saturate(1.4);
+	-webkit-backdrop-filter: blur(1.5rem) saturate(1.4);
+	transform: translateZ(0);
 }
 
 .guestbook-chat__fallback-editor {
@@ -1206,6 +1208,7 @@ html:has(.guestbook-page) #content-wrapper {
 	box-shadow: 0 0.75rem 2.25rem rgb(0 0 0 / 0.14);
 	backdrop-filter: blur(1.5rem) saturate(1.4);
 	-webkit-backdrop-filter: blur(1.5rem) saturate(1.4);
+	transform: translateZ(0);
 }
 
 .guestbook-composer__reply {

@@ -20,6 +20,71 @@ import { url } from "@/utils/url-utils";
     >
       <div id="spine-player-container" style="width: 100%; height: 100%;" />
       <div id="spine-error" style="display: none;" />
+
+      <!-- 看板娘悬浮选项工具栏（鼠标靠近时浮现） -->
+      <div id="spine-action-toolbar" class="spine-action-toolbar" aria-label="看板娘快捷选项">
+        <button
+          type="button"
+          class="spine-tool-btn"
+          id="spine-btn-sync"
+          aria-label="刷新留言"
+        >
+          <svg class="spine-tool-icon" viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67" />
+          </svg>
+          <span class="spine-tooltip" id="spine-sync-tooltip">刷新留言</span>
+        </button>
+        <button
+          type="button"
+          class="spine-tool-btn"
+          id="spine-btn-dialogue"
+          aria-label="留言情报"
+        >
+          <svg class="spine-tool-icon" viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M7.9 20A9 9 0 1 0 4 16.1L2 22Z" />
+          </svg>
+          <span class="spine-tooltip">留言情报</span>
+        </button>
+        <button
+          type="button"
+          class="spine-tool-btn"
+          id="spine-btn-action"
+          aria-label="换个表情"
+        >
+          <svg class="spine-tool-icon" viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+            <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
+          </svg>
+          <span class="spine-tooltip">换个动作</span>
+        </button>
+        <button
+          type="button"
+          class="spine-tool-btn"
+          id="spine-btn-sleep"
+          aria-label="小憩收起"
+        >
+          <svg class="spine-tool-icon" viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M18 6h-6l6 6h-6" />
+            <path d="M9 14H5l4 4H5" />
+          </svg>
+          <span class="spine-tooltip">小憩收起</span>
+        </button>
+      </div>
+
+      <!-- 唤醒展开浮标（小憩收起时悬挂在露出的右侧边缘） -->
+      <button
+        type="button"
+        id="spine-wake-btn"
+        class="spine-wake-btn"
+        style="display: none;"
+        aria-label="唤醒流萤"
+        title="点击或向右拖动唤醒"
+      >
+        <span class="spine-wake-icon">🌸</span>
+        <span class="spine-wake-text">唤醒</span>
+        <svg class="spine-wake-arrow" viewBox="0 0 24 24" width="11" height="11" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <polyline points="9 18 15 12 9 6"></polyline>
+        </svg>
+      </button>
     </div>
   )
 }
@@ -84,12 +149,28 @@ import { url } from "@/utils/url-utils";
     }
   }
 
-  // 更新响应式显示
+  function isGuestbookPage() {
+    return (
+      Boolean(document.querySelector(".guestbook-page")) ||
+      window.location.pathname.startsWith("/guestbook")
+    );
+  }
+
+  // 更新响应式显示与页面路由可见性
   function updateResponsiveDisplay() {
     if (!spineModelConfig.enable) return;
 
     const container = document.getElementById("spine-model-container");
     if (!container) return;
+
+    // 检查是否配置了仅在留言板启用
+    if (spineModelConfig.onlyOnGuestbook && !isGuestbookPage()) {
+      container.style.display = "none";
+      if (window.clearModelMessage) {
+        window.clearModelMessage();
+      }
+      return;
+    }
 
     // 检查移动端显示设置
     if (
@@ -141,6 +222,13 @@ import { url } from "@/utils/url-utils";
 
   async function initSpineModel() {
     if (!spineModelConfig.enable) return;
+
+    // 检查是否仅在留言板启用，如果在其他页面则不加载重型模型资源
+    if (spineModelConfig.onlyOnGuestbook && !isGuestbookPage()) {
+      const container = document.getElementById("spine-model-container");
+      if (container) container.style.display = "none";
+      return;
+    }
 
     // 检查移动端显示设置，如果隐藏则不加载运行时
     if (
@@ -277,6 +365,13 @@ import { url } from "@/utils/url-utils";
                 isClickProcessing = true;
                 lastClickTime = currentTime;
 
+                // 收起状态下点击模型，直接唤醒展开
+                const sleepingContainer = document.getElementById("spine-model-container");
+                if (sleepingContainer && sleepingContainer.classList.contains("is-sleeping")) {
+                  wakeUp();
+                  return;
+                }
+
                 // 随机播放点击动画
                 const clickAnims =
                   spineModelConfig.interactive.clickAnimations ||
@@ -303,8 +398,8 @@ import { url } from "@/utils/url-utils";
                   }
                 }
 
-                // 显示随机消息
-                const messages = spineModelConfig.interactive.clickMessages;
+                // 显示纯粹的日常互动随机台词，遵照用户需求不再混入技术性的留言板条数或刷新时间
+                const messages = [...(spineModelConfig.interactive.clickMessages || [])];
                 if (messages && messages.length > 0) {
                   const randomMessage =
                     messages[Math.floor(Math.random() * messages.length)];
@@ -373,33 +468,563 @@ import { url } from "@/utils/url-utils";
     }
   }
 
+  // 留言板状态与小助手事件通信
+  let latestGuestbookCount = 0;
+  let latestSyncedAt = null;
+  let hasWelcomedGuestbook = false;
+  let isManualSyncing = false;
+
+  function formatSyncTime(ts) {
+    if (!ts) return "尚未刷新";
+    const now = Date.now();
+    const diff = Math.floor((now - ts) / 1000);
+    if (diff < 15) return "刚刚";
+    if (diff < 60) return `${diff} 秒前`;
+    const mins = Math.floor(diff / 60);
+    if (mins < 60) return `${mins} 分钟前`;
+    const d = new Date(ts);
+    const hh = String(d.getHours()).padStart(2, "0");
+    const mm = String(d.getMinutes()).padStart(2, "0");
+    return `${hh}:${mm}`;
+  }
+
+  function updateSyncTooltip() {
+    const tooltip = document.getElementById("spine-sync-tooltip");
+    if (!tooltip) return;
+    const timeText = formatSyncTime(latestSyncedAt);
+    tooltip.textContent = `刷新留言 (${timeText})`;
+  }
+
+  function initToolbarEvents() {
+    const syncBtn = document.getElementById("spine-btn-sync");
+    const dialogueBtn = document.getElementById("spine-btn-dialogue");
+    const actionBtn = document.getElementById("spine-btn-action");
+    const sleepBtn = document.getElementById("spine-btn-sleep");
+    const wakeBtn = document.getElementById("spine-wake-btn");
+
+    if (syncBtn && !syncBtn.dataset.bound) {
+      syncBtn.dataset.bound = "1";
+      syncBtn.addEventListener("mouseenter", updateSyncTooltip);
+      syncBtn.addEventListener("click", (e) => {
+        e.stopPropagation();
+        syncBtn.classList.add("is-spinning");
+        isManualSyncing = true;
+        window.dispatchEvent(new CustomEvent("guestbook:trigger-sync"));
+        showMessage("正在为你检查最新留言哦~ 🌸");
+        setTimeout(() => {
+          syncBtn.classList.remove("is-spinning");
+          updateSyncTooltip();
+        }, 1200);
+      });
+    }
+
+    // 换句台词按钮：专门轮播汇报留言板状态（上次刷新时间、当前总留言条数等）
+    let dialogueReportIndex = 0;
+    function getGuestbookReportMessage() {
+      const syncTimeStr = formatSyncTime(latestSyncedAt);
+      const reports = [];
+
+      if (latestGuestbookCount > 0) {
+        reports.push(`🌸 报告！留言板目前已汇聚了 ${latestGuestbookCount} 条温暖留言啦~`);
+        reports.push(`💬 大家的留言都很有趣呢，现在共有 ${latestGuestbookCount} 条消息哦！`);
+      }
+      if (latestSyncedAt) {
+        reports.push(`💫 上次同步更新是在 ${syncTimeStr} 呢，数据妥妥的~`);
+        reports.push(`⏱️ 留言通道运行良好，上次检查是 ${syncTimeStr} 哦！`);
+      }
+      if (latestGuestbookCount > 0 && latestSyncedAt) {
+        reports.push(`📊 留言情报速递：共 ${latestGuestbookCount} 条留言 · 上次同步: ${syncTimeStr} ✨`);
+      }
+      reports.push(`🔔 只要有新的留言送达，流萤都会第一时间叮咚提醒你哦~`);
+      reports.push(`💡 小贴士：点击右侧或引用留言可以快速回复，回车键直接发送！`);
+
+      const selected = reports[dialogueReportIndex % reports.length];
+      dialogueReportIndex++;
+      return selected;
+    }
+
+    if (dialogueBtn && !dialogueBtn.dataset.bound) {
+      dialogueBtn.dataset.bound = "1";
+      dialogueBtn.addEventListener("click", (e) => {
+        e.stopPropagation();
+        const msg = getGuestbookReportMessage();
+        showMessage(msg);
+      });
+    }
+
+    if (actionBtn && !actionBtn.dataset.bound) {
+      actionBtn.dataset.bound = "1";
+      actionBtn.addEventListener("click", (e) => {
+        e.stopPropagation();
+        const player = window.spinePlayerInstance;
+        if (!player) return;
+        const anims = spineModelConfig.interactive.clickAnimations || [];
+        if (anims.length > 0) {
+          const randomAnim = anims[Math.floor(Math.random() * anims.length)];
+          try {
+            player.setAnimation(randomAnim, false);
+            setTimeout(() => {
+              const idleAnims = spineModelConfig.interactive.idleAnimations || ["idle"];
+              const randomIdle = idleAnims[Math.floor(Math.random() * idleAnims.length)];
+              player.setAnimation(randomIdle, true);
+            }, 2000);
+          } catch (err) {
+            console.warn("Failed to switch animation:", err);
+          }
+        }
+      });
+    }
+
+    if (sleepBtn && !sleepBtn.dataset.bound) {
+      sleepBtn.dataset.bound = "1";
+      sleepBtn.addEventListener("click", (e) => {
+        e.stopPropagation();
+        putToSleep();
+      });
+    }
+
+    if (wakeBtn && !wakeBtn.dataset.bound) {
+      wakeBtn.dataset.bound = "1";
+      wakeBtn.addEventListener("click", (e) => {
+        e.stopPropagation();
+        wakeUp();
+      });
+    }
+
+    initDragEvents();
+  }
+
+  // 控制 SpinePlayer WebGL 渲染暂停与恢复（有效节约 CPU/GPU 开销）
+  function pauseSpinePlayer() {
+    const player = window.spinePlayerInstance;
+    if (player && typeof player.pause === "function") {
+      try {
+        player.pause();
+      } catch (_) {}
+    }
+  }
+
+  function resumeSpinePlayer() {
+    const player = window.spinePlayerInstance;
+    if (player && typeof player.play === "function") {
+      try {
+        player.play();
+      } catch (_) {}
+    }
+  }
+
+  // 待机动画循环控制
+  function startIdleLoop(player) {
+    if (!player || spineModelConfig.interactive.idleAnimations.length <= 1) return;
+    if (window.__spineIdleIntervalId) {
+      clearInterval(window.__spineIdleIntervalId);
+    }
+    window.__spineIdleIntervalId = setInterval(() => {
+      try {
+        const container = document.getElementById("spine-model-container");
+        if (container && container.classList.contains("is-sleeping")) return;
+        const idleAnims = spineModelConfig.interactive.idleAnimations;
+        const randomIdle = idleAnims[Math.floor(Math.random() * idleAnims.length)];
+        player.setAnimation(randomIdle, true);
+      } catch (e) {
+        console.warn("Failed to play idle animation:", e);
+      }
+    }, spineModelConfig.interactive.idleInterval);
+  }
+
+  // 唤醒流萤核心逻辑
+  function wakeUp() {
+    const container = document.getElementById("spine-model-container");
+    const wakeBtn = document.getElementById("spine-wake-btn");
+    if (!container) return;
+    container.classList.remove("is-sleeping");
+    container.style.transform = "";
+    container.style.transition = "";
+    if (wakeBtn) wakeBtn.style.display = "none";
+    resumeSpinePlayer();
+    showMessage("流萤醒来啦！很高兴继续陪着你~ ✨");
+
+    const player = window.spinePlayerInstance;
+    if (player) {
+      try {
+        const wakeAnims = ["emoji_0", "emoji_3", "idle"];
+        const anim = wakeAnims[Math.floor(Math.random() * wakeAnims.length)];
+        player.setAnimation(anim, false);
+        setTimeout(() => {
+          const idleAnims = spineModelConfig.interactive.idleAnimations || ["idle"];
+          player.setAnimation(idleAnims[0] || "idle", true);
+          startIdleLoop(player);
+        }, 2000);
+      } catch (err) {
+        console.warn("Wake animation error:", err);
+      }
+    }
+  }
+
+  // 小憩收起核心逻辑
+  function putToSleep() {
+    const container = document.getElementById("spine-model-container");
+    const wakeBtn = document.getElementById("spine-wake-btn");
+    if (!container) return;
+    container.classList.add("is-sleeping");
+    if (wakeBtn) wakeBtn.style.display = "flex";
+    if (window.clearModelMessage) window.clearModelMessage();
+    // 小憩时暂停待机定时器与渲染循环，彻底消除后台空转消耗
+    if (window.__spineIdleIntervalId) {
+      clearInterval(window.__spineIdleIntervalId);
+      window.__spineIdleIntervalId = null;
+    }
+    pauseSpinePlayer();
+  }
+
+  // 支持在收起状态下按住露出的流萤身体向右拖拽拉出（Drag to pull out）
+  let isDraggingSleep = false;
+  let dragStartX = 0;
+  let dragMoved = false;
+
+  function initDragEvents() {
+    const container = document.getElementById("spine-model-container");
+    if (!container || container.dataset.dragBound) return;
+    container.dataset.dragBound = "1";
+
+    container.addEventListener("pointerdown", (e) => {
+      if (!container.classList.contains("is-sleeping")) return;
+      isDraggingSleep = true;
+      dragMoved = false;
+      dragStartX = e.clientX;
+      container.style.transition = "none";
+      try {
+        container.setPointerCapture(e.pointerId);
+      } catch (_) {}
+    });
+
+    container.addEventListener("pointermove", (e) => {
+      if (!isDraggingSleep) return;
+      const deltaX = e.clientX - dragStartX;
+      if (Math.abs(deltaX) > 6) {
+        dragMoved = true;
+      }
+      if (deltaX > 0) {
+        // 向右拖动：从基础偏移 -75px 往 0px 靠拢
+        const currentOffset = Math.min(10, -75 + deltaX);
+        container.style.transform = `translateX(${currentOffset}px) scale(0.85)`;
+      }
+    });
+
+    const finishDrag = (e) => {
+      if (!isDraggingSleep) return;
+      isDraggingSleep = false;
+      container.style.transition = "";
+      try {
+        container.releasePointerCapture(e.pointerId);
+      } catch (_) {}
+
+      const deltaX = e.clientX - dragStartX;
+      if (container.classList.contains("is-sleeping")) {
+        // 向右拖动超过 20px，或者用户点击而未大幅移动，均直接唤醒展开
+        if (deltaX > 20 || !dragMoved) {
+          wakeUp();
+        } else {
+          container.style.transform = "";
+        }
+      }
+    };
+
+    container.addEventListener("pointerup", finishDrag);
+    container.addEventListener("pointercancel", finishDrag);
+  }
+
+  window.addEventListener("guestbook:status", (event) => {
+    if (!spineModelConfig.guestbookAssistant) return;
+    if (!isGuestbookPage()) return;
+    const detail = (event && "detail" in event ? event.detail : null) || {};
+
+    if (detail.lastSyncedAt) {
+      latestSyncedAt = Number(detail.lastSyncedAt);
+      updateSyncTooltip();
+    }
+
+    if (detail.type === "synced") {
+      const count = Number(detail.totalMessages) || 0;
+      latestGuestbookCount = count;
+      if (isManualSyncing) {
+        isManualSyncing = false;
+        showMessage(`已同步至最新数据啦~ (上次检查: ${formatSyncTime(latestSyncedAt)}) 💫`);
+      } else if (!hasWelcomedGuestbook && count > 0) {
+        hasWelcomedGuestbook = true;
+        setTimeout(() => {
+          if (isGuestbookPage()) {
+            showMessage(`🌸 欢迎来到留言板！这里已汇聚了 ${count} 条留言啦~`);
+          }
+        }, 1200);
+      }
+    } else if (detail.type === "new-message") {
+      if (isGuestbookPage()) {
+        showMessage("🔔 叮咚！刚刚有新的留言送达，快去看看吧！");
+      }
+    } else if (detail.type === "sent") {
+      if (isGuestbookPage()) {
+        showMessage("🚀 留言发送成功！感谢你的温暖分享~ 💖");
+      }
+    }
+  });
+
+  // 导航路由流转处理器
+  function handleNavigation() {
+    updateResponsiveDisplay();
+    if (isGuestbookPage()) {
+      initToolbarEvents();
+      if (!window.spineModelInitialized) {
+        initSpineModel();
+      } else {
+        const container = document.getElementById("spine-model-container");
+        if (container && !container.classList.contains("is-sleeping")) {
+          resumeSpinePlayer();
+        }
+      }
+    } else {
+      hasWelcomedGuestbook = false;
+      pauseSpinePlayer();
+      if (window.clearModelMessage) {
+        window.clearModelMessage();
+      }
+    }
+  }
+
   // 监听页面卸载事件，清理资源
   window.addEventListener("beforeunload", cleanupSpineModel);
 
-  // 监听 Swup 页面切换事件（如果使用了 Swup）
-  if (typeof window.swup !== "undefined" && window.swup.hooks) {
-    window.swup.hooks.on("content:replace", () => {
-      // 只更新响应式显示，不重新创建模型
-      setTimeout(() => {
-        updateResponsiveDisplay();
-      }, 100);
+  // 单例注册全局事件，防止 Swup SPA 跨页重复监听（符合 CLAUDE.md §8 与 §11）
+  if (!window.__spineGlobalEventsBound) {
+    window.__spineGlobalEventsBound = true;
+
+    // 监听 Swup 页面切换事件
+    document.addEventListener("swup:content:replaced", () => {
+      setTimeout(handleNavigation, 80);
+    });
+
+    // 监听 popstate 事件（浏览器前进后退）
+    window.addEventListener("popstate", () => {
+      setTimeout(handleNavigation, 80);
+    });
+
+    // 监听窗口大小变化
+    window.addEventListener("resize", updateResponsiveDisplay);
+
+    // 监听标签页可见性：切换到后台标签时自动暂停 WebGL 渲染，切回前台恢复
+    document.addEventListener("visibilitychange", () => {
+      if (document.hidden) {
+        pauseSpinePlayer();
+      } else {
+        const container = document.getElementById("spine-model-container");
+        if (container && !container.classList.contains("is-sleeping") && isGuestbookPage()) {
+          resumeSpinePlayer();
+        }
+      }
     });
   }
 
-  // 监听 popstate 事件（浏览器前进后退）
-  window.addEventListener("popstate", () => {
-    setTimeout(() => {
-      updateResponsiveDisplay();
-    }, 100);
-  });
-
-  // 监听窗口大小变化
-  window.addEventListener("resize", updateResponsiveDisplay);
-
-  // 页面加载完成后初始化（只初始化一次）
+  // 页面加载完成后初始化
   if (document.readyState === "loading") {
-    document.addEventListener("DOMContentLoaded", initSpineModel);
+    document.addEventListener("DOMContentLoaded", () => {
+      initToolbarEvents();
+      initSpineModel();
+    });
   } else {
+    initToolbarEvents();
     initSpineModel();
   }
 </script>
+
+<style>
+  #spine-model-container {
+    transform-origin: left bottom;
+    transition: transform 0.35s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.3s ease;
+  }
+
+  #spine-model-container.is-sleeping {
+    /* 适度左移，让流萤露出半身（约 40px）停留在视口内，不跑出屏幕 */
+    transform: translateX(-75px) scale(0.85);
+    opacity: 0.6;
+    cursor: pointer;
+  }
+
+  #spine-model-container.is-sleeping:hover {
+    opacity: 0.95;
+    transform: translateX(-50px) scale(0.88);
+  }
+
+  #spine-model-container.is-sleeping .spine-action-toolbar {
+    display: none;
+  }
+
+  .spine-action-toolbar {
+    position: absolute;
+    top: 12px;
+    right: -38px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    padding: 6px;
+    border-radius: 9999px;
+    background: var(--card-bg, rgba(255, 255, 255, 0.85));
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border: 1px solid var(--line-divider, rgba(0, 0, 0, 0.08));
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08), 0 1px 3px rgba(0, 0, 0, 0.05);
+    opacity: 0;
+    transform: translateX(-8px) scale(0.95);
+    pointer-events: none;
+    transition: opacity 0.25s cubic-bezier(0.16, 1, 0.3, 1), transform 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+    z-index: 1010;
+  }
+
+  :root.dark .spine-action-toolbar {
+    background: rgba(30, 32, 40, 0.88);
+    border-color: rgba(255, 255, 255, 0.1);
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.35);
+  }
+
+  #spine-model-container:hover .spine-action-toolbar,
+  .spine-action-toolbar:focus-within {
+    opacity: 1;
+    transform: translateX(0) scale(1);
+    pointer-events: auto;
+  }
+
+  .spine-tool-btn {
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 26px;
+    height: 26px;
+    border-radius: 50%;
+    border: none;
+    background: transparent;
+    color: var(--text-secondary, #666666);
+    cursor: pointer;
+    transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+    padding: 0;
+  }
+
+  :root.dark .spine-tool-btn {
+    color: rgba(255, 255, 255, 0.7);
+  }
+
+  .spine-tool-btn:hover {
+    background: var(--btn-hover-bg, rgba(0, 0, 0, 0.06));
+    color: var(--primary, #3b82f6);
+    transform: scale(1.12);
+  }
+
+  :root.dark .spine-tool-btn:hover {
+    background: rgba(255, 255, 255, 0.12);
+    color: #60a5fa;
+  }
+
+  .spine-tool-btn:active {
+    transform: scale(0.95);
+  }
+
+  .spine-tool-btn.is-spinning .spine-tool-icon {
+    animation: spine-spin 0.8s linear infinite;
+  }
+
+  @keyframes spine-spin {
+    from {
+      transform: rotate(0deg);
+    }
+    to {
+      transform: rotate(360deg);
+    }
+  }
+
+  .spine-tooltip {
+    position: absolute;
+    left: calc(100% + 8px);
+    top: 50%;
+    transform: translateY(-50%) translateX(-4px);
+    white-space: nowrap;
+    font-size: 11px;
+    line-height: 1;
+    padding: 5px 8px;
+    border-radius: 6px;
+    background: rgba(0, 0, 0, 0.85);
+    color: #ffffff;
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity 0.15s ease, transform 0.15s ease;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+    z-index: 1020;
+  }
+
+  :root.dark .spine-tooltip {
+    background: rgba(240, 240, 245, 0.95);
+    color: #111111;
+  }
+
+  .spine-tool-btn:hover .spine-tooltip {
+    opacity: 1;
+    transform: translateY(-50%) translateX(0);
+  }
+
+  .spine-wake-btn {
+    position: absolute;
+    bottom: 24px;
+    right: 2px;
+    display: none;
+    align-items: center;
+    gap: 3px;
+    padding: 5px 8px 5px 6px;
+    font-size: 11px;
+    font-weight: 600;
+    line-height: 1;
+    border-radius: 9999px;
+    border: 1px solid var(--line-divider, rgba(0, 0, 0, 0.12));
+    background: var(--card-bg, rgba(255, 255, 255, 0.95));
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    color: var(--primary, #3b82f6);
+    cursor: pointer;
+    box-shadow: 0 3px 12px rgba(0, 0, 0, 0.16);
+    transition: all 0.2s ease;
+    z-index: 1020;
+    user-select: none;
+    white-space: nowrap;
+  }
+
+  #spine-model-container.is-sleeping .spine-wake-btn {
+    display: flex;
+    animation: spine-wake-nudge 2.2s infinite ease-in-out;
+  }
+
+  :root.dark .spine-wake-btn {
+    background: rgba(30, 32, 40, 0.92);
+    border-color: rgba(255, 255, 255, 0.14);
+    color: #60a5fa;
+    box-shadow: 0 3px 12px rgba(0, 0, 0, 0.4);
+  }
+
+  .spine-wake-btn:hover {
+    transform: scale(1.1);
+    color: var(--primary, #3b82f6);
+  }
+
+  .spine-wake-arrow {
+    transition: transform 0.2s ease;
+  }
+
+  .spine-wake-btn:hover .spine-wake-arrow {
+    transform: translateX(2px);
+  }
+
+  @keyframes spine-wake-nudge {
+    0%, 100% {
+      transform: translateX(0);
+    }
+    50% {
+      transform: translateX(3px);
+    }
+  }
+</style>

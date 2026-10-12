@@ -1,7 +1,7 @@
 ---
-version: "v1.51.2"
+version: "v1.51.3"
 date: 2026-10-06
-type: feature
+type: improvement
 description: 移动端资料卡支持平滑回退至菜单页面并优化转场衔接动效，新增吸顶操作栏与手势/遮罩回退联动，并完成移动端抽屉滚动穿透全面治理
 ---
 

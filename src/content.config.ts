@@ -369,6 +369,20 @@ const changelogCollection = defineCollection({
 	}),
 });
 
+const upstreamChangelogCollection = defineCollection({
+	loader: glob({
+		pattern: "**/*.{md,mdx}",
+		base: "./src/content/upstream-changelog",
+	}),
+	schema: z.object({
+		version: z.string(),
+		date: z.date(),
+		time: z.string().optional(),
+		type: z.enum(["feature", "improvement", "fix", "removal"]),
+		description: z.string(),
+	}),
+});
+
 export const collections = {
 	posts: postsCollection,
 	spec: specCollection,
@@ -383,6 +397,7 @@ export const collections = {
 	apps: appsCollection,
 	equipment: equipmentCollection,
 	changelog: changelogCollection,
+	upstreamChangelog: upstreamChangelogCollection,
 	tombstones: tombstonesCollection,
 	bills: billsCollection,
 	schedules: schedulesCollection,

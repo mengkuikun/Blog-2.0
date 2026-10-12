@@ -695,6 +695,8 @@ export type SpineModelConfig = {
 	};
 	zIndex?: number; // 层级，默认1000
 	opacity?: number; // 透明度，0-1，默认1.0
+	onlyOnGuestbook?: boolean; // 是否仅在留言板页面显示，默认false
+	guestbookAssistant?: boolean; // 是否开启留言板小助手互动提示，默认true
 };
 
 // Live2D 看板娘配置

@@ -118,7 +118,8 @@ const allItems = [
 const recentItems = allItems
 	.sort((a, b) => b.date.getTime() - a.date.getTime())
 	.slice(0, 10);
-const defaultImage = "https://your-img-bed.example.com/file/blog/album/武侠风/22.webp";
+const defaultImage =
+	"https://your-img-bed.example.com/file/blog/album/武侠风/22.webp";
 
 const typeLabel: Record<string, () => string> = {
 	post: () => i18n(I18nKey.recentPosts),

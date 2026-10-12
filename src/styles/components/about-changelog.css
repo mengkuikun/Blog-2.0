@@ -153,6 +153,11 @@
 	transition: opacity 0.25s ease;
 }
 
+a.changelog-card__inner {
+	text-decoration: none;
+	color: inherit;
+}
+
 .changelog-card__inner {
 	position: relative;
 	display: flex;
@@ -341,10 +346,55 @@ html.changelog-dialog-open {
 	max-height: 82vh;
 	padding: 1.5rem 1.75rem;
 	overflow-y: auto;
+	scrollbar-width: thin;
+	scrollbar-color: rgba(0, 0, 0, 0.2) transparent;
 	border-radius: 0.75rem;
 	background: var(--page-bg);
 	box-shadow: 0 1.5rem 4rem rgb(0 0 0 / 0.28);
 	animation: changelog-dialog-in 0.22s ease;
+}
+
+:root.dark .changelog-dialog__panel {
+	scrollbar-color: rgba(255, 255, 255, 0.2) transparent;
+}
+
+.changelog-dialog__panel::-webkit-scrollbar {
+	width: 6px;
+}
+
+.changelog-dialog__panel::-webkit-scrollbar-track {
+	background: transparent;
+	border-radius: 3px;
+}
+
+.changelog-dialog__panel::-webkit-scrollbar-thumb {
+	background: linear-gradient(180deg, rgba(0, 0, 0, 0.1) 0%, rgba(0, 0, 0, 0.2) 100%);
+	border-radius: 3px;
+	border: 1px solid rgba(255, 255, 255, 0.1);
+	transition: background 0.2s ease, border-color 0.2s ease;
+}
+
+.changelog-dialog__panel::-webkit-scrollbar-thumb:hover {
+	background: linear-gradient(180deg, rgba(0, 0, 0, 0.2) 0%, rgba(0, 0, 0, 0.3) 100%);
+	border-color: rgba(255, 255, 255, 0.2);
+}
+
+.changelog-dialog__panel::-webkit-scrollbar-thumb:active {
+	background: linear-gradient(180deg, rgba(0, 0, 0, 0.3) 0%, rgba(0, 0, 0, 0.4) 100%);
+}
+
+:root.dark .changelog-dialog__panel::-webkit-scrollbar-thumb {
+	background: linear-gradient(180deg, rgba(255, 255, 255, 0.1) 0%, rgba(255, 255, 255, 0.2) 100%);
+	border: 1px solid rgba(0, 0, 0, 0.1);
+}
+
+:root.dark .changelog-dialog__panel::-webkit-scrollbar-thumb:hover {
+	background: linear-gradient(180deg, rgba(255, 255, 255, 0.2) 0%, rgba(255, 255, 255, 0.3) 100%);
+	border-color: rgba(0, 0, 0, 0.2);
+}
+
+:root.dark .changelog-dialog__panel::-webkit-scrollbar-thumb:active {
+	background: linear-gradient(180deg, rgba(255, 255, 255, 0.3) 0%, rgba(255, 255, 255, 0.4) 100%);
 }
 
 @keyframes changelog-dialog-in {

@@ -2,7 +2,12 @@ import type { CollectionEntry } from "astro:content";
 
 export type ChangelogType = "feature" | "improvement" | "fix" | "removal";
 
+export type ChangelogRawEntry =
+	| CollectionEntry<"changelog">
+	| CollectionEntry<"upstreamChangelog">;
+
 export interface ChangelogEntry {
+	id: string;
 	title: string;
 	date: string;
 	summary: string;
@@ -11,6 +16,7 @@ export interface ChangelogEntry {
 	type: ChangelogType;
 	version?: string;
 	rawDate?: Date;
+	rawEntry?: ChangelogRawEntry;
 }
 
 export interface PageMeta {
@@ -49,7 +55,7 @@ function normalizeType(raw: string | undefined): ChangelogType {
 }
 
 export function changelogEntriesFromCollection(
-	entries: CollectionEntry<"changelog">[],
+	entries: ChangelogRawEntry[],
 ): ChangelogEntry[] {
 	return entries
 		.sort((a, b) => {
@@ -59,7 +65,9 @@ export function changelogEntriesFromCollection(
 				return b.data.time.localeCompare(a.data.time);
 			}
 			if (b.data.version && a.data.version) {
-				return b.data.version.localeCompare(a.data.version, undefined, { numeric: true });
+				return b.data.version.localeCompare(a.data.version, undefined, {
+					numeric: true,
+				});
 			}
 			return b.id.localeCompare(a.id);
 		})
@@ -67,6 +75,7 @@ export function changelogEntriesFromCollection(
 			const raw = e.body ?? "";
 			const detail = raw.trim();
 			return {
+				id: e.id,
 				title: e.data.description || e.data.version || e.id,
 				date: e.data.date.toISOString().slice(0, 10),
 				summary: e.data.description || "",
@@ -75,6 +84,7 @@ export function changelogEntriesFromCollection(
 				type: normalizeType(e.data.type),
 				version: e.data.version,
 				rawDate: e.data.date,
+				rawEntry: e,
 			} satisfies ChangelogEntry;
 		});
 }

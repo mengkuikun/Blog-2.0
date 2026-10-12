@@ -3,7 +3,11 @@ import type { Live2DModelConfig, SpineModelConfig } from "../types/config";
 // Spine 看板娘配置
 export const spineModelConfig: SpineModelConfig = {
 	// Spine 看板娘开关
-	enable: false,
+	enable: true,
+	// 仅在留言板页面显示（非留言板页面彻底休眠隐藏，节省性能）
+	onlyOnGuestbook: true,
+	// 留言板专属小助手模式（播报留言统计与互动提示）
+	guestbookAssistant: true,
 
 	// Spine模型配置
 	model: {
@@ -51,17 +55,16 @@ export const spineModelConfig: SpineModelConfig = {
 		],
 		// 点击时随机显示的文字消息
 		clickMessages: [
-			"你好呀！我是夢酷！~",
-			"今天也要加油哦！✨",
-			"想要一起去看星空吗？🌟",
-			"记得要好好休息呢~",
-			"有什么想对我说的吗？💫",
-			"让我们一起探索未知的世界吧！🚀",
-			"每一颗星星都有自己的故事~⭐",
-			"希望能带给你温暖和快乐！💖",
+			"你好呀！我是留言板小向导流萤~ ✨",
+			"有什么悄悄话想对博主说吗？快写下来吧~ 💬",
+			"点击别人的留言可以快速引用回复哦！",
+			"按 Enter 回车键就可以快速发送消息啦 🚀",
+			"支持好玩的表情包和图片呢，试试看吧！🌸",
+			"每一条留言都会好好珍藏哦~ 💫",
+			"今天也是元气满满的一天，祝你有好心情！💖",
 		],
 		// 文字显示时间（毫秒）
-		messageDisplayTime: 3000,
+		messageDisplayTime: 3200,
 		// 待机动画列表
 		idleAnimations: ["idle", "emoji_0", "emoji_1", "emoji_3", "emoji_4"],
 		// 待机动画切换间隔（毫秒）
@@ -70,8 +73,8 @@ export const spineModelConfig: SpineModelConfig = {
 
 	// 响应式配置
 	responsive: {
-		// 在移动端隐藏
-		hideOnMobile: false,
+		// 在移动端隐藏（留言板移动端避免遮挡屏幕）
+		hideOnMobile: true,
 		// 移动端断点
 		mobileBreakpoint: 768,
 	},

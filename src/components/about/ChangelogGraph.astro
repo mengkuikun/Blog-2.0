@@ -11,9 +11,10 @@ import {
 
 interface Props {
 	limit?: number;
+	collectionName?: "changelog" | "upstreamChangelog";
 }
-const { limit = 30 } = Astro.props as Props;
-const raw = await getCollection("changelog");
+const { limit = 30, collectionName = "changelog" } = Astro.props as Props;
+const raw = await getCollection(collectionName);
 const entries = changelogEntriesFromCollection(raw);
 const CHANGELOG_DISPLAY_LIMIT =
 	limit > 0 ? Math.min(limit, entries.length) : entries.length;
@@ -59,15 +60,27 @@ const pageLabels = Object.fromEntries(
 			const entryLinks = links.get(i) ?? [];
 			return (
 				<li class="changelog-card" data-changelog-card data-index={i} data-num={num} data-type={entry.type} data-links={JSON.stringify(entryLinks.map((l) => ({ t: l.target, p: l.sharedPages })))}>
-					<button type="button" class="changelog-card__inner" data-changelog-open aria-haspopup="dialog">
-						<span class="changelog-card__num" aria-hidden="true">{String(num).padStart(2, "0")}</span>
-						<span class="changelog-card__meta">
-							<span class="changelog-card__type">{typeLabels[entry.type]}</span>
-							<time class="changelog-card__date" datetime={entry.date}>{entry.date}</time>
-						</span>
-						<span class="changelog-card__title">{entry.title}</span>
-						<span class="changelog-card__summary">{entry.summary}</span>
-					</button>
+					{entry.id.includes("firefly-v1-archive") ? (
+						<a href="/changelog/upstream/" class="changelog-card__inner">
+							<span class="changelog-card__num" aria-hidden="true">{String(num).padStart(2, "0")}</span>
+							<span class="changelog-card__meta">
+								<span class="changelog-card__type">{typeLabels[entry.type]}</span>
+								<time class="changelog-card__date" datetime={entry.date}>{entry.date}</time>
+							</span>
+							<span class="changelog-card__title">{entry.title}</span>
+							<span class="changelog-card__summary">{entry.summary}</span>
+						</a>
+					) : (
+						<button type="button" class="changelog-card__inner" data-changelog-open aria-haspopup="dialog">
+							<span class="changelog-card__num" aria-hidden="true">{String(num).padStart(2, "0")}</span>
+							<span class="changelog-card__meta">
+								<span class="changelog-card__type">{typeLabels[entry.type]}</span>
+								<time class="changelog-card__date" datetime={entry.date}>{entry.date}</time>
+							</span>
+							<span class="changelog-card__title">{entry.title}</span>
+							<span class="changelog-card__summary">{entry.summary}</span>
+						</button>
+					)}
 					<div class="changelog-card__detail" hidden>
 						<div class="changelog-card__detail-body">
 							{entry.summary ? <p class="changelog-card__detail-text">{entry.summary}</p> : null}
