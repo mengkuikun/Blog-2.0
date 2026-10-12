@@ -32,7 +32,8 @@ const processedLink = {
 		.filter((child): child is NavBarLink => child !== null),
 };
 
-const hasChildren = !!processedLink.children && processedLink.children.length > 0;
+const hasChildren =
+	!!processedLink.children && processedLink.children.length > 0;
 ---
 
 <div

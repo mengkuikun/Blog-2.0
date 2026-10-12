@@ -1,9 +1,9 @@
 import { expressiveCodeConfig, siteConfig } from "@/config";
 import { BANNER_HEIGHT_HOME } from "@/constants/constants";
 import { pathsEqual, url } from "@/utils/url-utils";
+import { updateMainGridCols } from "./grid-layout-utils";
 import { initCustomScrollbar } from "./scrollbar-utils";
 import { updateSidebarComponentsVisibility } from "./sidebar-utils";
-import { updateMainGridCols } from "./grid-layout-utils";
 
 declare global {
 	interface Window {

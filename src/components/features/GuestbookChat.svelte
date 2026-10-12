@@ -522,6 +522,23 @@ async function fetchAllMessages(signal?: AbortSignal): Promise<{
 
 let autoNoticeShown = false;
 
+function notifyGuestbookStatus(
+	type: "synced" | "new-message" | "sent",
+	count?: number,
+) {
+	if (typeof window === "undefined") return;
+	window.dispatchEvent(
+		new CustomEvent("guestbook:status", {
+			detail: {
+				type,
+				totalMessages: accessibleMessages.length,
+				lastSyncedAt,
+				count,
+			},
+		}),
+	);
+}
+
 async function loadInitial() {
 	if (isOffline) {
 		initialLoading = false;
@@ -543,6 +560,7 @@ async function loadInitial() {
 		lastSyncedAt = Date.now();
 		initialLoading = false;
 		if (incomplete) syncError = i18n(I18nKey.gbHistoryIncomplete);
+		notifyGuestbookStatus("synced");
 		await tick();
 		scrollToBottom(false);
 		preserveInitialBottomWhileMediaLoads();
@@ -607,6 +625,8 @@ async function syncLatest() {
 
 		if (freshCount > 0 && wasNearBottom) scrollToBottom(true);
 		else if (freshCount > 0) newMessageCount += freshCount;
+		if (freshCount > 0) notifyGuestbookStatus("new-message", freshCount);
+		else notifyGuestbookStatus("synced");
 	} catch (error) {
 		if (controller.signal.aborted || dataController !== controller) return;
 		const authenticationExpired = handleAuthenticationError(error);
@@ -934,6 +954,7 @@ async function sendMessage(
 		lastSyncedAt = Date.now();
 		await tick();
 		scrollToBottom(true);
+		notifyGuestbookStatus("sent");
 		queueLatestSync();
 	} catch (error) {
 		handleAuthenticationError(error);
@@ -1211,6 +1232,11 @@ onMount(() => {
 	window.addEventListener("online", handleOnline);
 	window.addEventListener("offline", handleOffline);
 
+	const handleTriggerSync = () => {
+		void syncLatest();
+	};
+	window.addEventListener("guestbook:trigger-sync", handleTriggerSync);
+
 	return () => {
 		dataController?.abort();
 		initialMediaCleanup?.();
@@ -1220,6 +1246,7 @@ onMount(() => {
 		document.removeEventListener("visibilitychange", handleVisibilityChange);
 		window.removeEventListener("online", handleOnline);
 		window.removeEventListener("offline", handleOffline);
+		window.removeEventListener("guestbook:trigger-sync", handleTriggerSync);
 	};
 });
 </script>

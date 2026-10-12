@@ -4,7 +4,7 @@
     scrollbar-color: rgba(0, 0, 0, 0.2) transparent;
 }
 
-.dark .custom-scrollbar {
+:root.dark .custom-scrollbar {
     scrollbar-color: rgba(255, 255, 255, 0.2) transparent;
 }
 
@@ -34,16 +34,16 @@
 }
 
 /* 暗色模式滚动条 - Webkit */
-.dark .custom-scrollbar::-webkit-scrollbar-thumb {
+:root.dark .custom-scrollbar::-webkit-scrollbar-thumb {
     background: linear-gradient(180deg, rgba(255, 255, 255, 0.1) 0%, rgba(255, 255, 255, 0.2) 100%);
     border: 1px solid rgba(0, 0, 0, 0.1);
 }
 
-.dark .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+:root.dark .custom-scrollbar::-webkit-scrollbar-thumb:hover {
     background: linear-gradient(180deg, rgba(255, 255, 255, 0.2) 0%, rgba(255, 255, 255, 0.3) 100%);
     border-color: rgba(0, 0, 0, 0.2);
 }
 
-.dark .custom-scrollbar::-webkit-scrollbar-thumb:active {
+:root.dark .custom-scrollbar::-webkit-scrollbar-thumb:active {
     background: linear-gradient(180deg, rgba(255, 255, 255, 0.3) 0%, rgba(255, 255, 255, 0.4) 100%);
 }

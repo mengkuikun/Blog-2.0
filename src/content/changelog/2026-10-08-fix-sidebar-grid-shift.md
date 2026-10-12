@@ -1,5 +1,5 @@
 ---
-version: "v1.51.3"
+version: "v1.51.4"
 date: 2026-10-08
 type: fix
 description: 消除 Swup 客户端切页时因残缺两列网格兜底导致的右侧边栏位移跳动，对齐 SideBar 服务端文章详情页判定
