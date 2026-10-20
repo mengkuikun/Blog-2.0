@@ -2,6 +2,7 @@
 import { getCollection } from "astro:content";
 import { Icon } from "astro-icon/components";
 import Comment from "@/components/comment/index.astro";
+import PageTitle from "@/components/common/PageTitle.astro";
 import MainGridLayout from "@/layouts/MainGridLayout.astro";
 
 const lifeEntries = await getCollection("life");
@@ -139,11 +140,11 @@ if (document.readyState === 'loading') {
 
       <!-- 头部 -->
       <div class="mb-6">
-        <div class="flex items-center gap-3 mb-3">
-          <Icon name="material-symbols:explore" class="text-[1.875rem] text-neutral-900 dark:text-neutral-100" />
-          <div class="text-3xl font-bold text-neutral-900 dark:text-neutral-100">去过的地方</div>
-        </div>
-        <p class="text-base text-neutral-600 dark:text-neutral-400 leading-relaxed">足迹地图与旅行记录</p>
+        <PageTitle
+          icon="material-symbols:explore"
+          title="去过的地方"
+          description="足迹地图与旅行记录"
+        />
       </div>
 
       <!-- 统计 -->

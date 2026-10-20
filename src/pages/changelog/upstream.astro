@@ -1,6 +1,7 @@
 ---
 import ChangelogGraph from "@components/about/ChangelogGraph.astro";
 import { Icon } from "astro-icon/components";
+import PageTitle from "@/components/common/PageTitle.astro";
 import { siteConfig } from "@/config";
 import MainGridLayout from "@/layouts/MainGridLayout.astro";
 
@@ -17,23 +18,22 @@ const displaySubtitle =
 	<div class="flex w-full rounded-(--radius-large) overflow-hidden relative min-h-32">
 		<div class="card-base z-10 px-4 py-6 md:px-9 relative w-full">
 			<div class="mb-6">
-				<div class="flex flex-wrap items-center justify-between gap-4 mb-3">
-					<div class="flex items-center gap-3">
-						<Icon name="material-symbols:history-edu" class="text-[1.875rem] text-neutral-900 dark:text-neutral-100" />
-						<div class="text-3xl font-bold text-neutral-900 dark:text-neutral-100">{displayTitle}</div>
+				<div class="flex flex-wrap items-center justify-between gap-4 mb-4">
+					<div class="flex-1 min-w-0">
+						<PageTitle
+							icon="material-symbols:history-edu"
+							title={displayTitle}
+							description={displaySubtitle}
+						/>
 					</div>
 					<a
 						href="/changelog/"
-						class="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-xs font-medium bg-neutral-100 dark:bg-neutral-800 text-neutral-700 dark:text-neutral-300 hover:bg-primary hover:text-white dark:hover:bg-primary dark:hover:text-white transition-all shadow-xs"
+						class="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-xs font-medium bg-neutral-100 dark:bg-neutral-800 text-neutral-700 dark:text-neutral-300 hover:bg-primary hover:text-white dark:hover:bg-primary dark:hover:text-white transition-all shadow-xs shrink-0"
 					>
 						<Icon name="material-symbols:arrow-back-rounded" class="text-sm" />
 						<span>返回当前更新日志</span>
 					</a>
 				</div>
-
-				<p class="text-base text-neutral-600 dark:text-neutral-400 leading-relaxed mb-4">
-					{displaySubtitle}
-				</p>
 
 				<div class="p-3.5 rounded-xl bg-neutral-50 dark:bg-neutral-800/60 border border-neutral-200 dark:border-neutral-700/60 text-xs text-neutral-600 dark:text-neutral-300 flex flex-wrap items-center justify-between gap-3">
 					<div class="flex items-center gap-2">

@@ -2,6 +2,7 @@
 import { getCollection } from "astro:content";
 import Comment from "@components/comment/index.astro";
 import { Icon } from "astro-icon/components";
+import PageTitle from "@/components/common/PageTitle.astro";
 import Bookshelf from "@/components/pages/books/Bookshelf.astro";
 import { siteConfig } from "@/config";
 import I18nKey from "@/i18n/i18nKey";
@@ -120,15 +121,11 @@ const statusFilters = [
 		<div data-pagefind-body class="card-base z-10 px-4 py-6 md:px-9 relative w-full">
 					<!-- Page header -->
 		<header class="books-header relative w-full mb-6">
-			<div class="flex items-center gap-3 mb-3">
-				<Icon name="material-symbols:auto-stories" class="text-[1.875rem] text-neutral-900 dark:text-neutral-100" />
-				<div class="text-3xl font-bold text-neutral-900 dark:text-neutral-100">
-					{i18n(I18nKey.booksTitle)}
-				</div>
-			</div>
-			<p class="text-base text-neutral-600 dark:text-neutral-400 leading-relaxed">
-				{i18n(I18nKey.booksSubtitle)}
-			</p>
+			<PageTitle
+				icon="material-symbols:auto-stories"
+				title={i18n(I18nKey.booksTitle)}
+				description={i18n(I18nKey.booksSubtitle)}
+			/>
 			<div class="flex items-center gap-4 mt-2">
 				<p class="text-xs text-neutral-400 dark:text-neutral-500">
 					{i18n(I18nKey.bangumiLastUpdated)} {buildTime}

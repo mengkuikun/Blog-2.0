@@ -20,7 +20,11 @@ const { Content } = await render(aboutPost);
 	<SiteStructuredData slot="head" includeProfilePage={true} />
 	<div class="about-page card-base z-10 px-4 py-6 md:px-9 relative w-full">
 		<div class="mb-6">
-			<PageTitle title={i18n(I18nKey.about)} variant="stacked" />
+			<PageTitle
+				icon="material-symbols:person-outline"
+				title={i18n(I18nKey.about)}
+				description="了解本站作者、内容方向与博客的演进历程，记录成长的每一步。"
+			/>
 		</div>
 		<Markdown class="mb-6 markdown-content onload-animation">
 			<Content />

@@ -394,26 +394,17 @@ onMount(() => {
 </script>
 
 <div class="schedules-inner">
-	<!-- 顶部：图标+标题，描述与切换按钮同排（移动端不另起行） -->
-	<div class="schedules-header">
-		<div class="schedules-header__top">
-			<span class="schedules-header__icon">
-				<Calendar size={28} strokeWidth={2} />
-			</span>
-			<h1 class="schedules-header__title">日历</h1>
-		</div>
-		<div class="schedules-header__bottom">
-			<p class="schedules-header__desc">用日历管理你的日程、生日与纪念日，重要时刻一目了然</p>
-			<button class="schedules-view-toggle" type="button" onclick={toggleView} aria-label="切换视图" title={viewMode === "month" ? "切换为周视图" : "切换为月视图"}>
-				{#if viewMode === "month"}
-					<Rows3 size={16} />
-					<span>周视图</span>
-				{:else}
-					<LayoutGrid size={16} />
-					<span>月视图</span>
-				{/if}
-			</button>
-		</div>
+	<!-- 视图切换操作栏（标题已由外层统一 PageTitle 渲染） -->
+	<div class="schedules-actions">
+		<button class="schedules-view-toggle" type="button" onclick={toggleView} aria-label="切换视图" title={viewMode === "month" ? "切换为周视图" : "切换为月视图"}>
+			{#if viewMode === "month"}
+				<Rows3 size={16} />
+				<span>周视图</span>
+			{:else}
+				<LayoutGrid size={16} />
+				<span>月视图</span>
+			{/if}
+		</button>
 	</div>
 
 	<div class="sched-cal" data-view={viewMode}>
@@ -548,18 +539,11 @@ onMount(() => {
 
 <style>
 @reference "../../styles/main.css";
-.schedules-header{ display:flex; flex-direction:column; gap:0.45rem; margin-bottom:0.8rem; }
-.schedules-header__top{ display:flex; align-items:center; gap:0.55rem; }
-.schedules-header__bottom{ display:flex; align-items:center; justify-content:space-between; gap:0.8rem; }
-.schedules-header__icon{ display:flex; align-items:center; justify-content:center; width:2.25rem; height:2.25rem; border:1.5px solid #111; border-radius:0.55rem; background:#fff; flex-shrink:0; }
-:root.dark .schedules-header__icon{ border-color: oklch(1 0 0 / 0.18); background: transparent; color:#fff; }
-.schedules-header__title{ font-size:1.875rem; line-height:1; font-weight:800; color: oklch(0.15 0 0); }
-:root.dark .schedules-header__title{ color:#fff; }
-.schedules-header__desc{ flex:1; font-size:0.875rem; color:var(--guestbook-muted); line-height:1.5; margin:0; min-width:0; }
-.schedules-view-toggle{ display:inline-flex; align-items:center; gap:0.35rem; padding:0.45rem 0.75rem; border:1.5px solid #111; border-radius:9999px; background:#fff; font-size:0.78rem; font-weight:600; cursor:pointer; white-space:nowrap; transition: all 0.15s ease; }
-.schedules-view-toggle:hover{ background:#111; color:#fff; }
-:root.dark .schedules-view-toggle{ border-color: oklch(1 0 0 / 0.18); background: transparent; color:#fff; }
-:root.dark .schedules-view-toggle:hover{ background:#fff; color:#111; }
+.schedules-actions{ display:flex; justify-content:flex-end; margin-bottom:0.75rem; }
+.schedules-view-toggle{ display:inline-flex; align-items:center; gap:0.35rem; padding:0.45rem 0.75rem; border:1.5px solid var(--deep-text); border-radius:9999px; background:var(--card-bg); color:var(--deep-text); font-size:0.78rem; font-weight:600; cursor:pointer; white-space:nowrap; transition: all 0.15s ease; }
+.schedules-view-toggle:hover{ background:var(--deep-text); color:var(--card-bg); }
+:root.dark .schedules-view-toggle{ border-color: oklch(1 0 0 / 0.18); background: transparent; color:var(--deep-text); }
+:root.dark .schedules-view-toggle:hover{ background:var(--deep-text); color:var(--card-bg); }
 .sched-cal{ border:1.5px solid #111; border-radius:0.85rem; overflow:hidden; background: #fff; padding:0.7rem; transition: all 0.25s ease; }
 :root.dark .sched-cal{ border-color: oklch(1 0 0 / 0.18); background: oklch(0.16 0 0 / 0.86); }
 .sched-cal__header{ display:flex; align-items:center; justify-content:space-between; padding:0.3rem 0.2rem 0.55rem; }
@@ -577,7 +561,7 @@ onMount(() => {
 .sched-cal__row{ display:grid; grid-template-columns:repeat(7,1fr); }
 .sched-cal__row + .sched-cal__row{ border-top:1px solid oklch(0 0 0 / 0.08); }
 :root.dark .sched-cal__row + .sched-cal__row{ border-color: oklch(1 0 0 / 0.08); }
-.sched-cal__row--week{ border-top:none !important; }
+.sched-cal__row--week{ border-top:none; }
 .sched-cal__cell{ aspect-ratio:1; padding:0.32rem 0.36rem; text-align:left; border-right:1px solid oklch(0 0 0 / 0.08); background:#fff; display:flex; flex-direction:column; gap:0.2rem; overflow:hidden; cursor:pointer; }
 .sched-cal__cell:last-child{ border-right:none; }
 .sched-cal__cell--week{ aspect-ratio: 1.1; }

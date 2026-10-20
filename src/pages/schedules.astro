@@ -1,6 +1,7 @@
 ---
 import { getCollection } from "astro:content";
 import { Lunar } from "lunar-javascript";
+import PageTitle from "@/components/common/PageTitle.astro";
 import SchedulesView from "@/components/schedules/SchedulesView.svelte";
 import MainGridLayout from "@/layouts/MainGridLayout.astro";
 
@@ -55,6 +56,11 @@ const selected =
 <MainGridLayout title="日程" description="日历与日程">
   <div class="flex w-full rounded-(--radius-large) overflow-hidden relative min-h-32">
     <div data-pagefind-body class="card-base z-10 px-4 py-6 md:px-9 relative w-full">
+      <PageTitle
+        icon="material-symbols:calendar-today-outline"
+        title="日历"
+        description="用日历管理你的日程、生日与纪念日，重要时刻一目了然"
+      />
       <SchedulesView
         client:load
         schedules={schedules}
