@@ -628,10 +628,9 @@ html:has(.guestbook-page) #content-wrapper {
 .guestbook-chat__fallback-composer {
 	padding: var(--space-3) var(--space-4) var(--space-2);
 	border-radius: var(--radius-large);
-	background: color-mix(in srgb, var(--guestbook-dock-bg) 82%, transparent);
+	background: color-mix(in srgb, var(--guestbook-dock-bg) 90%, transparent);
 	backdrop-filter: blur(1.5rem) saturate(1.4);
 	-webkit-backdrop-filter: blur(1.5rem) saturate(1.4);
-	transform: translateZ(0);
 }
 
 .guestbook-chat__fallback-editor {
@@ -1204,11 +1203,10 @@ html:has(.guestbook-page) #content-wrapper {
 	z-index: 3;
 	padding: var(--space-3) var(--space-4) var(--space-2);
 	border-radius: var(--radius-large, 0.75rem);
-	background: color-mix(in srgb, var(--guestbook-dock-bg) 82%, transparent);
+	background: color-mix(in srgb, var(--guestbook-dock-bg) 90%, transparent);
 	box-shadow: 0 0.75rem 2.25rem rgb(0 0 0 / 0.14);
 	backdrop-filter: blur(1.5rem) saturate(1.4);
 	-webkit-backdrop-filter: blur(1.5rem) saturate(1.4);
-	transform: translateZ(0);
 }
 
 .guestbook-composer__reply {
