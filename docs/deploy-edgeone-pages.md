@@ -16,6 +16,7 @@ EdgeOne Pages 托管（blog.example.com 直接绑定 Pages 项目）
 ```
 
 - 无独立 CDN 加速层：EdgeOne Pages 托管本身即边缘分发
+- 边缘重定向：根目录声明 `edgeone.json`，由 EdgeOne 边缘 CDN 节点直接下发 HTTP 302 重定向（如 `/mf` 短链直达博文锚点），并在 `astro.config.mjs` 单一数据源同步
 - 无 GitHub Actions 部署工作流（`pages.yml` 已删除）；`build.yml` 保留作 CI 质量门（`astro check` + `pnpm build`，与 EdgeOne 构建一致）
 - 后台 PagesCMS 独立部署在 Vercel（`cms.example.com`），只写 git 仓库，与博客托管无关（见 `deploy-pagescms-vercel.md`）
 
