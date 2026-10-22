@@ -32,6 +32,7 @@ import { rehypeMermaid } from "./src/plugins/rehype-mermaid.mjs";
 import { parseDirectiveNode } from "./src/plugins/remark-directive-rehype.js";
 import { remarkExcerpt } from "./src/plugins/remark-excerpt.js";
 import { remarkMermaid } from "./src/plugins/remark-mermaid.js";
+import edgeoneConfig from "./edgeone.json" with { type: "json" };
 import { remarkReadingTime } from "./src/plugins/remark-reading-time.mjs";
 
 // https://astro.build/config
@@ -40,6 +41,11 @@ export default defineConfig({
 
 	base: "/",
 	trailingSlash: "always",
+
+	// 从 edgeone.json 自动同步短链重定向，确保本地与线上单一真实源
+	redirects: Object.fromEntries(
+		edgeoneConfig.redirects.map((r) => [r.source, r.destination]),
+	),
 
 	// 图像优化配置
 	image: {

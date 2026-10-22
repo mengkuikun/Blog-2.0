@@ -1,0 +1,9 @@
+{
+  "redirects": [
+    {
+      "source": "/mf",
+      "destination": "/posts/实用教程/2026-10-03-基于musicfree搭建全功能个人音乐平台/#手把手保姆级实战指南",
+      "statusCode": 302
+    }
+  ]
+}
