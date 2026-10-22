@@ -118,8 +118,13 @@ const handleInput = () => {
             <div class="h-8 w-8 rounded-lg bg-(--primary) flex items-center justify-center text-white dark:text-black/70">
                 <Icon icon="material-symbols:search" class="text-[1.5rem]"></Icon>
             </div>
-            <h1 class="text-3xl font-bold text-90">
-                {title}
+            <h1 class="page-title__heading text-3xl font-bold">
+                <span class="page-title__measure" aria-hidden="true" data-pagefind-ignore>{title}</span>
+                <svg class="page-title__svg" aria-hidden="true" focusable="false" data-pagefind-ignore>
+                    <text class="page-title__ink" x="0" y="0" dominant-baseline="text-before-edge">{title}</text>
+                    <text class="page-title__solid" x="0" y="0" dominant-baseline="text-before-edge">{title}</text>
+                </svg>
+                <span class="sr-only">{title}</span>
             </h1>
         </div>
         {#if description}

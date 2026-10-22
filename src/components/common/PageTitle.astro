@@ -4,7 +4,9 @@ import { Icon } from "astro-icon/components";
 interface Props {
 	title: string;
 	icon?: string;
+	/** 标题上方的英文小标题（可选，未提供时根据标题自动推导） */
 	eyebrow?: string;
+	description?: string;
 	variant?: "compact" | "stacked";
 	class?: string;
 }
@@ -13,19 +15,112 @@ const {
 	title,
 	icon,
 	eyebrow,
+	description,
 	variant = "compact",
-	class: className,
+	class: className = "mb-6",
 } = Astro.props;
+
+// 全站常用中文标题对应的优雅大写英文小眉题自动映射表
+const defaultEyebrowMap: Record<string, string> = {
+	我的书架: "BOOKSHELF",
+	书架: "BOOKSHELF",
+	影视与游戏: "ENTERTAINMENT",
+	影视游戏: "ENTERTAINMENT",
+	追番: "BANGUMI",
+	记录: "BANGUMI",
+	更新日志: "CHANGELOG",
+	原版更新日志: "UPSTREAM",
+	足迹: "FOOTPRINTS",
+	去过的地方: "FOOTPRINTS",
+	我的相册: "ALBUM",
+	相册: "ALBUM",
+	我的设备: "EQUIPMENT",
+	设备: "EQUIPMENT",
+	关于我: "ABOUT ME",
+	关于: "ABOUT ME",
+	归档: "ARCHIVE",
+	文章归档: "ARCHIVE",
+	分类标签: "CATEGORIES",
+	分类: "CATEGORIES",
+	标签: "TAGS",
+	网站导航: "PROJECTS",
+	导航: "PROJECTS",
+	项目: "PROJECTS",
+	友情链接: "FRIENDS",
+	友链: "FRIENDS",
+	赞助支持: "SPONSOR",
+	赞助: "SPONSOR",
+	赞赏: "SPONSOR",
+	应用展示: "APPLICATIONS",
+	应用: "APPLICATIONS",
+	文章列表: "ARTICLES",
+	文章: "ARTICLES",
+	日历: "SCHEDULES",
+	日程: "SCHEDULES",
+	笔记本: "NOTEBOOKS",
+	搜索: "SEARCH",
+	高级搜索: "SEARCH",
+	"RSS 订阅": "RSS FEED",
+	RSS: "RSS FEED",
+	置顶说说: "PINNED",
+	说说: "MOMENTS",
+	动态: "MOMENTS",
+	留言板: "GUESTBOOK",
+	账单: "BILLS",
+	友链朋友圈: "CIRCLE",
+};
+
+const cleanTitle = title.trim();
+let matchedEyebrow = eyebrow ?? defaultEyebrowMap[cleanTitle];
+
+// 若精确匹配未命中，执行关键词模糊匹配
+if (!matchedEyebrow) {
+	for (const [key, val] of Object.entries(defaultEyebrowMap)) {
+		if (cleanTitle.includes(key) || key.includes(cleanTitle)) {
+			matchedEyebrow = val;
+			break;
+		}
+	}
+}
+
+const displayEyebrow = matchedEyebrow ?? "";
 ---
 
 <div class:list={["page-title", `page-title--${variant}`, className]}>
-	{variant === "compact" && icon && (
-		<span class="page-title__icon" aria-hidden="true">
-			<Icon name={icon} />
-		</span>
-	)}
 	<div class="page-title__body">
-		{eyebrow && <span class="page-title__eyebrow">{eyebrow}</span>}
-		<h1 class="page-title__text">{title}</h1>
+		{displayEyebrow && (
+			<span class:list={["page-title__eyebrow", { "page-title__eyebrow--with-icon": !!icon }]}>
+				{displayEyebrow}
+			</span>
+		)}
+
+		<div class="page-title__heading-row">
+			{icon && (
+				<Icon
+					name={icon}
+					class="page-title__icon shrink-0"
+				/>
+			)}
+			<h1 class="page-title__text">
+				<span class="page-title__measure" aria-hidden="true" data-pagefind-ignore>{title}</span>
+				<svg
+					class="page-title__svg"
+					aria-hidden="true"
+					focusable="false"
+					data-pagefind-ignore
+				>
+					<text class="page-title__ink" x="0" y="0" dominant-baseline="text-before-edge">{title}</text>
+					<text class="page-title__solid" x="0" y="0" dominant-baseline="text-before-edge">{title}</text>
+				</svg>
+				<span class="sr-only">{title}</span>
+			</h1>
+		</div>
+
+		{description && (
+			<p class="page-title__desc">
+				{description}
+			</p>
+		)}
 	</div>
 </div>
+

@@ -1,5 +1,6 @@
 ---
 import { Icon } from "astro-icon/components";
+import PageTitle from "@/components/common/PageTitle.astro";
 import { siteConfig, sponsorConfig } from "@/config";
 import I18nKey from "@/i18n/i18nKey";
 import { i18n } from "@/i18n/translation";
@@ -24,15 +25,11 @@ const showSponsorsList = sponsorConfig.showSponsorsList !== false;
     <div class="card-base z-10 px-4 py-6 md:px-9 relative w-full">
       <!-- 页面标题和描述 -->
       <div class="mb-8">
-        <div class="flex items-center gap-3 mb-3">
-          <Icon name="material-symbols:favorite" class="text-[1.875rem] text-neutral-900 dark:text-neutral-100" />
-          <div class="text-3xl font-bold text-neutral-900 dark:text-neutral-100">{title}</div>
-        </div>
-        {description && (
-          <p class="text-base text-neutral-600 dark:text-neutral-400 leading-relaxed">
-            {description}
-          </p>
-        )}
+        <PageTitle
+          icon="material-symbols:favorite"
+          title={title}
+          description={description}
+        />
         {sponsorConfig.usage && (
           <div class="mb-8 p-4 rounded-lg bg-(--primary)/8 dark:bg-(--btn-regular-bg) border border-(--primary)/30 dark:border-none backdrop-blur-xs shadow-xs usage-info-box">
             <div class="flex items-start gap-2">

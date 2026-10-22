@@ -1,6 +1,7 @@
 ---
 import { getCollection, render } from "astro:content";
 import Markdown from "@/components/common/Markdown.astro";
+import PageTitle from "@/components/common/PageTitle.astro";
 import I18nKey from "@/i18n/i18nKey";
 import { i18n } from "@/i18n/translation";
 import MainGridLayout from "@/layouts/MainGridLayout.astro";
@@ -46,10 +47,10 @@ const getStatusText = (status: number) => {
 	<div class="flex w-full rounded-(--radius-large) overflow-hidden relative mb-4">
 		<div data-pagefind-body class="card-base z-10 px-3 md:px-5 pt-6 pb-4 relative w-full">
 			<!-- title -->
-			<div class="relative onload-animation">
-				<h1 data-pagefind-meta="title" data-pagefind-weight="10" class="">
-					{entry.data.title}
-				</h1>
+			<div class="relative onload-animation mb-4">
+				<PageTitle
+					title={entry.data.title}
+				/>
 			</div>
 
 			<!-- metadata -->

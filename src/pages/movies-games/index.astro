@@ -3,6 +3,7 @@ import { getCollection } from "astro:content";
 import Comment from "@components/comment/index.astro";
 import { Icon } from "astro-icon/components";
 import ClientPagination from "@/components/common/ClientPagination.astro";
+import PageTitle from "@/components/common/PageTitle.astro";
 import MovieGameCard from "@/components/pages/movies-games/MovieGameCard.astro";
 import { siteConfig } from "@/config";
 import { externalBangumiConfig } from "@/config/externalBangumiConfig";
@@ -220,15 +221,11 @@ const activeTab = sections[0]?.tabKey || "all";
 		<div data-pagefind-body class="card-base z-10 px-4 py-6 md:px-9 relative w-full">
 			<!-- Page header -->
 			<header class="mg-header relative w-full mb-8">
-				<div class="flex items-center gap-3 mb-3">
-					<Icon name="material-symbols:movie-outline-rounded" class="text-[1.875rem] text-neutral-900 dark:text-neutral-100" />
-					<div class="text-3xl font-bold text-neutral-900 dark:text-neutral-100">
-						{i18n(I18nKey.moviesGamesTitle)}
-					</div>
-				</div>
-				<p class="text-base text-neutral-600 dark:text-neutral-400 leading-relaxed">
-					{i18n(I18nKey.moviesGamesSubtitle)}
-				</p>
+				<PageTitle
+					icon="material-symbols:movie-outline-rounded"
+					title={i18n(I18nKey.moviesGamesTitle)}
+					description={i18n(I18nKey.moviesGamesSubtitle)}
+				/>
 				<p class="text-xs text-neutral-400 dark:text-neutral-500 mt-1">
 					{i18n(I18nKey.bangumiLastUpdated)} {buildTime}
 				</p>

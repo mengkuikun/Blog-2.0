@@ -95,6 +95,7 @@ src/
     └── 35 个业务工具    # build-platform, content-utils, category-tree（文件夹即分类，多级 `a/b` 推导 + CategoryNode 树）, navbar-dropdown-controller, date-utils, image-utils, url-utils, tts-text（朗读正文提取）...
 
 # 根目录其他重要文件
+edgeone.json              # 腾讯云 EdgeOne Pages 边缘重定向配置文件（/mf 等短链 302 瞬跳）
 .pages.yml                # PagesCMS 后台配置（11 集合声明，见第 19 节）
 .claude/settings.json     # 命令白名单（分类器不可用时不卡 Bash）
 pagefind.yml              # Pagefind 索引排除配置（katex、搜索面板等）

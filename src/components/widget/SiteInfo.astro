@@ -211,40 +211,44 @@ const detailItems: {
       }
     </div>
 
-    {/* 可折叠区域（格子布局） */}
+    {/* 可折叠区域（技术栈同款 Grid 0fr -> 1fr 平滑阻尼下滑动效） */}
     <site-info-collapse
       data-expand-text={i18n(I18nKey.siteInfoExpand)}
       data-collapse-text={i18n(I18nKey.siteInfoCollapse)}
+      data-expanded="false"
       class="block"
     >
-      <div class="site-info-detail overflow-hidden transition-[max-height,opacity] duration-300 ease-in-out collapsed">
-        <div class="grid grid-cols-2 gap-2 pt-1 pb-1">
-          {
-            detailItems.map((item) => (
-              <div
-                class:list={[
-                  "site-info-card flex flex-col items-center gap-1 py-2 px-1 bg-neutral-100/60 dark:bg-neutral-800/50 select-none",
-                  { "col-span-2": item.fullWidth },
-                ]}
-              >
-                <div class="text-(--primary) text-lg">
-                  <Icon name={item.icon} />
-                </div>
-                <span class="text-xs text-neutral-500 dark:text-neutral-400">
-                  {item.label}
-                </span>
-                <span
+      <div class="site-info-collapse-body">
+        <div class="site-info-collapse-inner">
+          <div class="grid grid-cols-2 gap-2 pt-1 pb-1">
+            {
+              detailItems.map((item, index) => (
+                <div
+                  style={`--i: ${index}`}
                   class:list={[
-                    "font-bold text-neutral-900 dark:text-neutral-100 text-center truncate w-full px-1",
-                    item.fullWidth ? "text-xs" : "text-sm",
+                    "site-info-card flex flex-col items-center gap-1 py-2 px-1 bg-neutral-100/60 dark:bg-neutral-800/50 select-none",
+                    { "col-span-2": item.fullWidth },
                   ]}
-                  title={item.value}
                 >
-                  {item.value}
-                </span>
-              </div>
-            ))
-          }
+                  <div class="text-(--primary) text-lg">
+                    <Icon name={item.icon} />
+                  </div>
+                  <span class="text-xs text-neutral-500 dark:text-neutral-400">
+                    {item.label}
+                  </span>
+                  <span
+                    class:list={[
+                      "font-bold text-neutral-900 dark:text-neutral-100 text-center truncate w-full px-1",
+                      item.fullWidth ? "text-xs" : "text-sm",
+                    ]}
+                    title={item.value}
+                  >
+                    {item.value}
+                  </span>
+                </div>
+              ))
+            }
+          </div>
         </div>
       </div>
       <button
@@ -254,7 +258,7 @@ const detailItems: {
       >
         <Icon
           name="material-symbols:keyboard-arrow-down-rounded"
-          class="site-info-toggle-icon w-6 h-6 transition-transform duration-200"
+          class="site-info-toggle-icon w-6 h-6"
         />
         <span class="site-info-toggle-text text-sm"></span>
       </button>
@@ -274,15 +278,57 @@ const detailItems: {
     border-radius: 0.5rem;
   }
 
-  /* 折叠动画 */
-  site-info-collapse .collapsed {
-    max-height: 0;
-    opacity: 0;
-    pointer-events: none;
+  /* ── 展开/收起主体：技术栈同款 grid-template-rows 过渡（合成层友好，60fps），贝塞尔缓动 ── */
+  .site-info-collapse-body {
+    display: grid;
+    grid-template-rows: 0fr;
+    transition: grid-template-rows 0.42s cubic-bezier(0.22, 1, 0.36, 1);
   }
-  site-info-collapse .site-info-detail:not(.collapsed) {
-    max-height: 500px;
-    opacity: 1;
+
+  site-info-collapse[data-expanded="true"] .site-info-collapse-body {
+    grid-template-rows: 1fr;
+  }
+
+  .site-info-collapse-inner {
+    overflow: hidden;
+    min-height: 0;
+  }
+
+  /* 箭头平滑阻尼旋转 180 度 */
+  .site-info-toggle-icon {
+    transition: transform 0.42s cubic-bezier(0.22, 1, 0.36, 1);
+  }
+
+  site-info-collapse[data-expanded="true"] .site-info-toggle-icon {
+    transform: rotate(180deg);
+  }
+
+  /* 展开时卡片依次瀑布式微距渐入（stagger） */
+  site-info-collapse[data-expanded="true"] .site-info-card {
+    animation: site-info-card-in 0.35s ease both;
+    animation-delay: calc(0.06s + var(--i, 0) * 0.035s);
+  }
+
+  @keyframes site-info-card-in {
+    from {
+      opacity: 0;
+      transform: translateY(0.4rem);
+    }
+    to {
+      opacity: 1;
+      transform: none;
+    }
+  }
+
+  /* 减弱动画降级 */
+  @media (prefers-reduced-motion: reduce) {
+    .site-info-collapse-body,
+    .site-info-toggle-icon {
+      transition: none;
+    }
+    site-info-collapse[data-expanded="true"] .site-info-card {
+      animation: none;
+    }
   }
 </style>
 
@@ -292,26 +338,21 @@ const detailItems: {
 
     connectedCallback() {
       const btn = this.querySelector<HTMLButtonElement>(".site-info-toggle-btn");
-      const detail = this.querySelector<HTMLElement>(".site-info-detail");
       const textEl = this.querySelector<HTMLElement>(".site-info-toggle-text");
-      const iconEl = this.querySelector<HTMLElement>(".site-info-toggle-icon");
-      if (!btn || !detail || !textEl) return;
+      if (!btn || !textEl) return;
 
       const expandText = this.dataset.expandText || "展开构建信息";
       const collapseText = this.dataset.collapseText || "收起构建信息";
 
-      let expanded = !detail.classList.contains("collapsed");
+      let expanded = this.getAttribute("data-expanded") === "true";
       textEl.textContent = expanded ? collapseText : expandText;
       btn.setAttribute("aria-expanded", String(expanded));
 
       const handleClick = () => {
         expanded = !expanded;
-        detail.classList.toggle("collapsed", !expanded);
+        this.setAttribute("data-expanded", String(expanded));
         textEl.textContent = expanded ? collapseText : expandText;
         btn.setAttribute("aria-expanded", String(expanded));
-        if (iconEl) {
-          iconEl.style.transform = expanded ? "rotate(180deg)" : "rotate(0deg)";
-        }
       };
 
       btn.addEventListener("click", handleClick);

@@ -2,7 +2,7 @@
 import { render } from "astro:content";
 import * as path from "node:path";
 import type { GetStaticPaths, ImageMetadata } from "astro";
-import AnimatedTabs from "@/components/controls/AnimatedTabs.svelte";
+import PageTitle from "@/components/common/PageTitle.astro";
 import ArticleVirtualList from "@/components/pages/ArticleVirtualList.svelte";
 import { siteConfig } from "@/config";
 import { coverImageConfig } from "@/config/coverImageConfig";
@@ -157,14 +157,12 @@ const allowLayoutSwitch = siteConfig.postListLayout.allowSwitch;
 
 <MainGridLayout title={title} description={description}>
 		<section class="article-list-page article-list-page--compact">
-			<header class="article-list-page__header">
-				<!-- 页面标题 -->
-				<div class="article-list-page__title-row">
-					<h1 class="article-list-page__title">
-						<span class="article-list-page__title-en">Article Index</span>
-						<span class="article-list-page__title-zh">文章列表</span>
-					</h1>
-				</div>
+			<header class="article-list-page__header mb-6">
+				<PageTitle
+					icon="material-symbols:article"
+					title="文章列表"
+					description={description}
+				/>
 			</header>
 
 		<ArticleVirtualList

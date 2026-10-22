@@ -1,91 +1,248 @@
+/**
+ * 页面大标题（含 SVG「签写」入场动效与霞鹜文楷手写体）
+ *
+ * 结构与动效复刻自 MMZMING 大佬的 PageTitle 规范：
+ * 1. 标题上方带精致大写英文眉题（全大写、宽字距、微距紧凑，杜绝压低中文大标题）；
+ * 2. 当标题左侧带有图标时，英文眉题向后缩进（对齐中文大标题文字起点，主次韵律分明）；
+ * 3. 中文大标题注入霞鹜文楷手写体与 SVG 细线落墨签写动画（stroke-width: 0.85），无多余悬空连线；
+ * 4. 保持原版纯图标风格，图标与大标题同行中轴对齐，绝对不发生标题下移错位；
+ * 5. 标题下方副标题描述自然段落带平滑淡入浮动动效；
+ * 6. 顶部留白默认给 0，避免整页内容下坠。
+ */
+
+/* 大标题页的顶部留白：本项目 #main-grid 本身已带上边距，这里默认给 0，避免整页内容下坠 */
+#content-wrapper:has(.page-title) {
+	padding-top: var(--page-title-top-gap, 0);
+}
+
 .page-title {
-	display: flex;
-	align-items: center;
-	gap: 0.875rem;
+	--pt-tail-delay: 0.6s;
+	display: block;
+	width: 100%;
 	min-width: 0;
-}
-
-.page-title__icon {
-	display: inline-flex;
-	align-items: center;
-	justify-content: center;
-	width: 3rem;
-	height: 3rem;
-	flex-shrink: 0;
-	border: 2px solid var(--deep-text);
-	border-radius: var(--radius-large);
-	color: var(--deep-text);
-	background: var(--page-bg);
-	transition: color 150ms ease, background-color 150ms ease, border-color 150ms ease;
-}
-
-.page-title__icon svg {
-	width: 1.65rem;
-	height: 1.65rem;
 }
 
 .page-title__body {
 	min-width: 0;
+	width: 100%;
 }
 
+/* ===== 标题上方的英文小眉题 ===== */
 .page-title__eyebrow {
 	display: block;
 	margin-bottom: 0.125rem;
 	font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
 	font-size: 0.75rem;
 	font-weight: 700;
-	letter-spacing: 0.12em;
+	letter-spacing: 0.14em;
 	text-transform: uppercase;
+	color: var(--primary);
+	opacity: 0.9;
+	line-height: 1.2;
+	animation: page-title-fade 0.7s ease-out 0.15s both;
+}
+
+/* 当带有图标时，英文小眉题向右缩进，左边缘精准对齐图标后的中文大标题文字起点 */
+.page-title__eyebrow--with-icon {
+	margin-left: calc(1.875rem + 0.75rem);
+}
+
+/* ===== 图标与标题同行对齐行（保证原本标题位置不变） ===== */
+.page-title__heading-row {
+	position: relative;
+	display: flex;
+	align-items: center;
+	gap: 0.75rem;
+	min-width: 0;
+	margin: 0;
+}
+
+/* 纯图标：与原版纯图标风格完全一致，尺寸 1.875rem，与大标题同行中轴对齐 */
+.page-title__icon {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	font-size: 1.875rem;
+	color: var(--deep-text, currentColor);
+	flex-shrink: 0;
+	transition: transform 0.2s ease;
+}
+
+.page-title__icon:hover {
+	transform: scale(1.08);
+}
+
+/* ===== 标题文本（SVG 签写动效） ===== */
+.page-title__text {
+	--pt-size: clamp(1.85rem, 4vw, 2.35rem);
+	--pt-weight: 700;
+	position: relative;
+	display: inline-flex;
+	align-items: center;
+	min-width: 0;
+	margin: 0;
+	color: var(--deep-text, currentColor);
+	font-family: "LXGW WenKai", var(--font-sans);
+	font-size: var(--pt-size);
+	font-weight: var(--pt-weight);
+	line-height: 1.15;
+	letter-spacing: 0;
+	white-space: nowrap;
+	-webkit-font-smoothing: antialiased;
+	-moz-osx-font-smoothing: grayscale;
+}
+
+/* 隐藏度量层：同字号同字重，用于精确撑开容器尺寸 */
+.page-title__measure {
+	display: block;
+	visibility: hidden;
+	font-family: "LXGW WenKai", var(--font-sans);
+	font-size: inherit;
+	font-weight: inherit;
+	letter-spacing: inherit;
+	white-space: nowrap;
+	user-select: none;
+	pointer-events: none;
+}
+
+/* SVG 绘制层：绝对定位覆盖度量层 */
+.page-title__svg {
+	position: absolute;
+	inset: 0;
+	width: 100%;
+	height: 100%;
+	overflow: visible;
+	pointer-events: none;
+}
+
+.page-title__ink,
+.page-title__solid {
+	font-family: inherit;
+	font-size: var(--pt-size);
+	font-weight: var(--pt-weight);
+	letter-spacing: 0;
+	-webkit-font-smoothing: antialiased;
+	-moz-osx-font-smoothing: grayscale;
+}
+
+/* 钢笔签写描边层：
+ * 采用 0.85 描边粗细（100% 对标 MMZMING 原版 0.9 视觉厚度，线条高亮清晰可见），
+ * 2400 完整虚线周期，搭配 MMZMING 经典 1.9s 运笔曲线，呈现鲜明行云流水的汉字勾勒轨迹。
+ */
+.page-title__ink {
+	fill: none;
+	stroke: var(--deep-text);
+	stroke-width: 0.85;
+	stroke-linejoin: round;
+	stroke-linecap: round;
+	stroke-dasharray: 2400;
+	stroke-dashoffset: 2400;
+	animation: page-title-write 1.9s cubic-bezier(0.5, 0, 0.2, 1) both;
+}
+
+/* 实心墨水晕开层：
+ * 100% 对标 MMZMING 原版逻辑：在描边落笔到中段（0.95s）时实心层平滑淡入，收尾成饱满字重
+ */
+.page-title__solid {
+	fill: var(--deep-text);
+	opacity: 0;
+	animation: page-title-ink 0.85s ease-out 0.95s both;
+}
+
+@keyframes page-title-write {
+	from {
+		stroke-dashoffset: 2400;
+	}
+	to {
+		stroke-dashoffset: 0;
+	}
+}
+
+@keyframes page-title-ink {
+	to {
+		opacity: 1;
+	}
+}
+
+/* 描述小字淡入上浮动画：自然段落排版，严格使用语义色彩变量 */
+.page-title__desc {
+	margin: 0.45rem 0 0;
+	color: var(--content-meta);
+	font-size: 0.95rem;
+	line-height: 1.6;
+	animation: page-title-fade 0.85s ease-out 0.4s both;
+}
+
+:root.dark .page-title__desc {
 	color: var(--content-meta);
 }
 
-.page-title__text {
-	margin: 0;
-	color: var(--deep-text);
-	font-size: clamp(1.85rem, 4vw, 2.5rem);
-	font-weight: 800;
-	line-height: 1.1;
-	letter-spacing: 0;
-	overflow-wrap: anywhere;
+@keyframes page-title-fade {
+	from {
+		opacity: 0;
+		transform: translateY(0.35rem);
+	}
+	to {
+		opacity: 1;
+		transform: translateY(0);
+	}
 }
 
+/* ===== stacked 变体：大标题更醒目 ===== */
 .page-title--stacked {
 	display: block;
 }
 
 .page-title--stacked .page-title__eyebrow {
-	margin-bottom: 0.35rem;
+	margin-bottom: 0.25rem;
 	font-size: clamp(0.78rem, 1.5vw, 0.95rem);
-	font-weight: 800;
-	letter-spacing: 0;
+	letter-spacing: 0.16em;
 }
 
 .page-title--stacked .page-title__text {
-	font-size: clamp(2rem, 4vw, 2.85rem);
-	font-weight: 900;
-	line-height: 1;
+	--pt-size: clamp(2rem, 4vw, 2.75rem);
+	--pt-weight: 800;
+	line-height: 1.08;
 }
 
+/* 响应式调整 */
 @media (max-width: 768px) {
-	.page-title {
+	.page-title__eyebrow--with-icon {
+		margin-left: calc(1.65rem + 0.625rem);
+	}
+
+	.page-title__heading-row {
 		gap: 0.625rem;
 	}
 
 	.page-title__icon {
-		width: 2.65rem;
-		height: 2.65rem;
+		font-size: 1.65rem;
 	}
 
 	.page-title__text {
-		font-size: 1.85rem;
+		--pt-size: 1.85rem;
 	}
 
 	.page-title__eyebrow {
-		font-size: 0.75rem;
+		font-size: 0.72rem;
 	}
 
 	.page-title--stacked .page-title__text {
-		font-size: clamp(1.85rem, 9vw, 2.45rem);
-		line-height: 1;
+		--pt-size: clamp(1.85rem, 9vw, 2.45rem);
+	}
+}
+
+/* 减弱动画降级 */
+@media (prefers-reduced-motion: reduce) {
+	.page-title__ink {
+		display: none;
+	}
+	.page-title__solid {
+		opacity: 1;
+		animation: none;
+	}
+	.page-title__desc,
+	.page-title__eyebrow {
+		animation: none;
 	}
 }
