@@ -1,13 +1,13 @@
 {
-  "timestamp": "2026-10-22T10:09:50.660Z",
+  "timestamp": "2026-10-23T10:02:34.826Z",
   "sites": {
     "https://tblog.mmzhiku.xyz": {
       "status": "fast",
-      "ms": 420
+      "ms": 608
     },
     "https://blog.mengku.shop": {
       "status": "fast",
-      "ms": 473
+      "ms": 345
     }
   }
 }
