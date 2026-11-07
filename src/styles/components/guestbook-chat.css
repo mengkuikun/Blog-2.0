@@ -201,9 +201,17 @@ html:has(.guestbook-page) #content-wrapper {
 	min-width: 0;
 	overflow: hidden;
 	border-radius: var(--radius-medium);
-	background: color-mix(in srgb, var(--guestbook-dock-bg) 88%, transparent);
+	background: color-mix(in srgb, var(--card-bg, #ffffff) 82%, transparent);
+	border: 1px solid rgba(255, 255, 255, 0.65);
 	box-shadow: 0 0.75rem 2rem rgb(0 0 0 / 0.16);
-	backdrop-filter: blur(1.25rem) saturate(1.4);
+	backdrop-filter: blur(24px) saturate(1.6);
+	-webkit-backdrop-filter: blur(24px) saturate(1.6);
+	transform: translateZ(0);
+}
+
+:root.dark .guestbook-chat__sidebar {
+	background: color-mix(in srgb, var(--guestbook-dock-bg) 85%, transparent);
+	border: 1px solid rgba(255, 255, 255, 0.08);
 }
 
 .guestbook-chat__sidebar.is-open {
@@ -628,9 +636,17 @@ html:has(.guestbook-page) #content-wrapper {
 .guestbook-chat__fallback-composer {
 	padding: var(--space-3) var(--space-4) var(--space-2);
 	border-radius: var(--radius-large);
-	background: color-mix(in srgb, var(--guestbook-dock-bg) 90%, transparent);
-	backdrop-filter: blur(1.5rem) saturate(1.4);
-	-webkit-backdrop-filter: blur(1.5rem) saturate(1.4);
+	background: color-mix(in srgb, var(--card-bg, #ffffff) 78%, transparent);
+	border: 1px solid rgba(255, 255, 255, 0.65);
+	backdrop-filter: blur(30px) saturate(1.8);
+	-webkit-backdrop-filter: blur(30px) saturate(1.8);
+	transform: translateZ(0);
+	will-change: backdrop-filter;
+}
+
+:root.dark .guestbook-chat__fallback-composer {
+	background: color-mix(in srgb, var(--guestbook-dock-bg) 82%, transparent);
+	border: 1px solid rgba(255, 255, 255, 0.08);
 }
 
 .guestbook-chat__fallback-editor {
@@ -1203,10 +1219,19 @@ html:has(.guestbook-page) #content-wrapper {
 	z-index: 3;
 	padding: var(--space-3) var(--space-4) var(--space-2);
 	border-radius: var(--radius-large, 0.75rem);
-	background: color-mix(in srgb, var(--guestbook-dock-bg) 90%, transparent);
-	box-shadow: 0 0.75rem 2.25rem rgb(0 0 0 / 0.14);
-	backdrop-filter: blur(1.5rem) saturate(1.4);
-	-webkit-backdrop-filter: blur(1.5rem) saturate(1.4);
+	background: color-mix(in srgb, var(--card-bg, #ffffff) 78%, transparent);
+	border: 1px solid rgba(255, 255, 255, 0.65);
+	box-shadow: 0 0.75rem 2.25rem rgb(0 0 0 / 0.12);
+	backdrop-filter: blur(30px) saturate(1.8);
+	-webkit-backdrop-filter: blur(30px) saturate(1.8);
+	transform: translateZ(0);
+	will-change: backdrop-filter;
+}
+
+:root.dark .guestbook-composer {
+	background: color-mix(in srgb, var(--guestbook-dock-bg) 82%, transparent);
+	border: 1px solid rgba(255, 255, 255, 0.08);
+	box-shadow: 0 0.75rem 2.25rem rgb(0 0 0 / 0.35);
 }
 
 .guestbook-composer__reply {

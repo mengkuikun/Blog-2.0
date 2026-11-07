@@ -359,7 +359,7 @@ const dockMusicPlaylist = JSON.stringify(musicEntries);
     toggleBtn.addEventListener("click", (e) => {
       e.stopPropagation();
       setExpanded(stack.getAttribute("data-expanded") !== "true");
-    });
+    }, { signal });
 
     const udThemeBtn = document.getElementById("ud-theme-btn") as HTMLElement | null;
     const udThemeLight = udThemeBtn?.querySelector(".ud-theme-light") as HTMLElement | null;
@@ -387,7 +387,7 @@ const dockMusicPlaylist = JSON.stringify(musicEntries);
     udThemeBtn?.addEventListener("click", (e) => {
       e.stopPropagation();
       toggleUnifiedTheme();
-    });
+    }, { signal });
 
     updateUnifiedThemeIcons();
     window.addEventListener("theme-change", updateUnifiedThemeIcons, { signal });
@@ -409,13 +409,13 @@ const dockMusicPlaylist = JSON.stringify(musicEntries);
         const isOpen = !drawer.classList.contains("dock-drawer-closed");
         closeAllDrawers();
         if (!isOpen) openDrawer(drawer);
-      });
+      }, { signal });
     });
 
     document.getElementById("dock-drawer-overlay")?.addEventListener("click", () => {
       closeAllDrawers();
       setExpanded(false);
-    });
+    }, { signal });
 
     document.addEventListener("click", (e) => {
       const target = e.target as Node;
@@ -431,19 +431,19 @@ const dockMusicPlaylist = JSON.stringify(musicEntries);
     document.getElementById("ud-top-btn")?.addEventListener("click", (e) => {
       e.stopPropagation();
       window.scroll({ top: 0, behavior: "smooth" });
-    });
+    }, { signal });
 
     document.getElementById("ud-friends-plus-btn")?.addEventListener("click", (e) => {
       e.stopPropagation();
       const target = document.querySelector('.comment-container, #waline, #tcomment, .giscus, #post-comments');
       if (target) target.scrollIntoView({ behavior: "smooth", block: "start" });
-    });
+    }, { signal });
 
     document.getElementById("ud-comment-btn")?.addEventListener("click", (e) => {
       e.stopPropagation();
       const target = document.getElementById("scissor-divider") || document.getElementById("post-comments");
       if (target) target.scrollIntoView({ behavior: "smooth", block: "start" });
-    });
+    }, { signal });
 
     document.getElementById("ud-toc-btn")?.addEventListener("click", () => {
       import("@/utils/tocUtils").then(({ TOCManager }) => {
@@ -458,7 +458,7 @@ const dockMusicPlaylist = JSON.stringify(musicEntries);
           console.error("TOC init failed:", err);
         }
       });
-    });
+    }, { signal });
 
     function updateVisibility() {
       const scrolled = window.scrollY > 200;
@@ -490,11 +490,18 @@ const dockMusicPlaylist = JSON.stringify(musicEntries);
     window.addEventListener("scroll", () => { updateVisibility(); syncWithMobileDock(); }, { passive: true, signal });
     const mobileDockEl = document.getElementById("mobile-dock");
     if (mobileDockEl) {
-      new MutationObserver(syncWithMobileDock).observe(mobileDockEl, { attributes: true, attributeFilter: ["class"] });
+      const obs = new MutationObserver(syncWithMobileDock);
+      obs.observe(mobileDockEl, { attributes: true, attributeFilter: ["class"] });
+      signal.addEventListener("abort", () => obs.disconnect());
     }
     window.addEventListener("resize", syncWithMobileDock, { passive: true, signal });
-    document.addEventListener("astro:page-load", () => bindUnifiedDock(), { signal });
-    document.addEventListener("swup:content:replaced", () => bindUnifiedDock(), { signal });
+  }
+
+  // 全局生命周期单例守卫（防止 Swup 跨页导航重复注册）
+  if (!(window as any).__unifiedDockGlobalBound) {
+    (window as any).__unifiedDockGlobalBound = true;
+    document.addEventListener("astro:page-load", () => bindUnifiedDock());
+    window.addEventListener("swup:content:replaced", () => setTimeout(bindUnifiedDock, 50));
   }
 
   bindUnifiedDock();

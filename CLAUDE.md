@@ -73,11 +73,11 @@ src/
 │   └── languages/       # en.ts, zh_CN.ts, zh_TW.ts, ja.ts, ru.ts
 ├── layouts/             # Layout.astro (591行), MainGridLayout.astro (305行)
 ├── notes/               # Obsidian 笔记（不发布）
-├── pages/               # 路由（43 个文件；admin 后台已删除，勿重建）
+├── pages/               # 路由（45 个文件；admin 后台已删除，勿重建）
 │   ├── api/             # JSON API (3)：calendar.json.ts, home-stats.json.ts, holidays.json.ts
 │   ├── album/ bangumi/ books/ categories/ equipment/ life/ moments/ posts/ // moments/[slug] 已删除
 │   └── 404, about, archive, apps, changelog (含 upstream/), circle, debug-urls, friends,
-│       guestbook, life/notebooks, movies-games/, music, projects, search,
+│       guestbook, life/notebooks, movies-games/, music, mf (短链秒跳), projects, search,
 │       sponsor, rss, robots.txt, og
 ├── plugins/             # 自定义 remark/rehype 插件 (10)
 ├── styles/              # CSS 样式（77 个文件，含 footer-signature 现代页脚、navbar-profile-card、dropdown-menu、about 技术栈/时间线/更新日志图谱、equipment 卡片）
