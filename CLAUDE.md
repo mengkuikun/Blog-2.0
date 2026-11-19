@@ -50,12 +50,12 @@
 ```
 src/
 ├── assets/images/       # 头像、封面等构建时图片
-├── components/          # 按功能域组织的组件（148 个文件）
+├── components/          # 按功能域组织的组件（149 个文件）
 │   ├── analytics/       # GA, Clarity, Umami (3)
 │   ├── comment/         # 评论系统：index + 5 种后端 + 3 个弹窗组件 + NotebookComment 笔记本列表页自研评论区（笔记引用 >>QUOTE>> 编码 + Waline 树形回复 pid/rid/at + 表情 :item: 标记，昵称/邮箱必填） (10)
 │   ├── common/          # 跨域共享基础组件 (17)
 │   ├── controls/        # 交互控件：搜索、归档（类型 Tab 筛选）、主题、Dock (8)
-│   ├── features/        # 独立功能模块 (26, 含 music-visualizer/、ArticleTtsPlayer.svelte 文章朗读播放器)
+│   ├── features/        # 独立功能模块 (27, 含 DrawerMusicPlayer.astro 抽屉播放器、music-visualizer/、ArticleTtsPlayer.svelte 文章朗读播放器)
 │   ├── layout/          # 布局组件：Navbar, Footer, SideBar, HomeHero, NavbarProfileCard (20)
 │   ├── misc/            # License, RelatedPosts, SharePoster (3)
 │   ├── moments/         # 动态卡片与评论弹窗
@@ -69,7 +69,7 @@ src/
 │   ├── album/ apps/ bangumi/ changelog/ upstream-changelog/ daohang/ equipment/
 │   ├── friends/ life/ moments/ posts/ spec/ ziyuan/  # spec/about.mdx 为组件化 Q&A；更新日志图谱组件（ChangelogGraph）用于 /changelog/ 页与 /changelog/upstream/ 原作者图谱子馆（2026-08-30 起不再嵌入关于页）
 │   └── life/notebooks/  # notebooks 集合物理位置（life 的子目录，2026-09-27 起归档改 card 流，支持 images 多图 12字展开 + 年份下拉联动热力图与列表）
-├── i18n/                # 国际化（5 种语言，353 个翻译键）
+├── i18n/                # 国际化（5 种语言，354 个翻译键）
 │   └── languages/       # en.ts, zh_CN.ts, zh_TW.ts, ja.ts, ru.ts
 ├── layouts/             # Layout.astro (591行), MainGridLayout.astro (305行)
 ├── notes/               # Obsidian 笔记（不发布）
@@ -80,7 +80,7 @@ src/
 │       guestbook, life/notebooks, movies-games/, music, mf (短链秒跳), projects, search,
 │       sponsor, rss, robots.txt, og
 ├── plugins/             # 自定义 remark/rehype 插件 (10)
-├── styles/              # CSS 样式（77 个文件，含 footer-signature 现代页脚、navbar-profile-card、dropdown-menu、about 技术栈/时间线/更新日志图谱、equipment 卡片）
+├── styles/              # CSS 样式（78 个文件，含 music-player.css、footer-signature 现代页脚、navbar-profile-card、dropdown-menu、about 技术栈/时间线/更新日志图谱、equipment 卡片）
 │   ├── tokens/          # 设计令牌：colors, breakpoints, animation, z-index
 │   ├── base/            # reset, utilities
 │   ├── components/      # 组件样式
@@ -90,7 +90,7 @@ src/
 │   ├── transitions/     # Swup 过渡动画
 │   └── vendor/          # 第三方覆盖
 ├── types/               # TypeScript 类型：config.ts, bangumi.ts, guestbook-chat.ts
-└── utils/               # 工具函数（45 个文件，含 build-platform.ts / calendar-milestones.ts / navbar-profile-controller.ts / navbar-dropdown-controller.ts / changelog.ts / tag-graph 控制器 / tts-text 正文提取等）
+└── utils/               # 工具函数（47 个文件，含 music-player-controller.ts / swup-lifecycle.ts / build-platform.ts / calendar-milestones.ts / navbar-profile-controller.ts / navbar-dropdown-controller.ts / changelog.ts / tag-graph 控制器 / tts-text 正文提取等）
     ├── 8 个控制器模块   # 见第 10 节
     └── 35 个业务工具    # build-platform, content-utils, category-tree（文件夹即分类，多级 `a/b` 推导 + CategoryNode 树）, navbar-dropdown-controller, date-utils, image-utils, url-utils, tts-text（朗读正文提取）...
 

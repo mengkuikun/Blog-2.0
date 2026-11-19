@@ -105,6 +105,7 @@
   --guestbook-sidebar-width: 18rem;
   --guestbook-viewport-offset: 5.5rem;
   --guestbook-mobile-dock-clearance: 6.25rem;
+  --music-surface: #DEDEDE;
 }
 
 /* 暗色主题：纯黑底 + 白前景，所有色块去饱和 */
@@ -193,6 +194,7 @@
   --guestbook-danger: var(--admonitions-color-caution);
   --guestbook-success: var(--admonitions-color-tip);
   --guestbook-waiting: #E5484D;
+  --music-surface: #161616;
 }
 
 /* ===== 文章列表 / 置顶轮播 ===== */

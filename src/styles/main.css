@@ -58,6 +58,7 @@
 @import './components/equipment-card.css';
 @import './components/archive-panel.css';
 @import './components/footer-signature.css';
+@import './components/music-player.css';
 
 /* --- 功能样式 --- */
 @import './features/content.css';
