@@ -1,17 +1,17 @@
 {
-  "timestamp": "2026-11-23T15:56:42.667Z",
+  "timestamp": "2026-11-24T15:51:41.252Z",
   "sites": {
     "https://tblog.mmzhiku.xyz": {
       "status": "fast",
-      "ms": 780
+      "ms": 746
     },
     "https://www.cqjszx.cn": {
-      "status": "ok",
-      "ms": 2176
+      "status": "slow",
+      "ms": 3685
     },
     "https://blog.mengku.shop": {
       "status": "fast",
-      "ms": 128
+      "ms": 614
     }
   }
 }
