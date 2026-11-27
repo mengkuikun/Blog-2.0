@@ -13,7 +13,7 @@ const SITE_INFO = {
 	avatar: "https://imki.cn/avatar.jpg",
 	desc: "Crafting Dreams In Code.",
 	targetHost: "imki.cn",
-	forbiddenHosts: ["imki.cn", "mengku.shop"],
+	forbiddenHosts: ["imki.cn"],
 };
 
 const USER_AGENT =
