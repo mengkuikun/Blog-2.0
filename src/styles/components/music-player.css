@@ -1,0 +1,888 @@
+/* ============================================
+   桌面可拖拽音乐组件 — 来自 MusicPlayer.astro
+   三态 morph（disc / pill / bar）+ 单一展开卡（歌单面板 / 信息层）+ 音量 popover
+   注意：border-radius / 高度 / grid-rows 一律用无过冲的 --mp-motion，
+   弹性过冲缓动 --mp-spring 只用于宽度与唱片位移，否则圆角过冲会闪出直角。
+   位置由控制器的 --mp-x / --mp-y 驱动（left / bottom 锚点，可拖到视口任意处）。
+   深浅色经 variables.styl 令牌自动适配；移动端由 MobileDock 承担
+   ============================================ */
+
+@keyframes spin-slow {
+	from { transform: rotate(0deg); }
+	to { transform: rotate(360deg); }
+}
+
+/* 胶囊歌词超宽跑马灯，偏移量与时长由控制器写 CSS 变量 */
+@keyframes music-player-marquee {
+	0%, 12% { transform: translate3d(0, 0, 0); }
+	88%, 100% { transform: translate3d(var(--mp-marquee-offset, 0px), 0, 0); }
+}
+
+/* 歌单条目逐项入场：错峰时长由控制器写在条目上的 --mp-i */
+@keyframes music-player-track-in {
+	from {
+		opacity: 0;
+		transform: translate3d(0, 0.5rem, 0);
+		filter: blur(3px);
+	}
+	to {
+		opacity: 1;
+		transform: none;
+		filter: blur(0);
+	}
+}
+
+.music-player {
+	--mp-bar-h: 4rem;
+	--mp-disc: 5rem;
+	--mp-inset: 1.25rem;
+	/* 唱片距 dock 左缘：pill / bar 两态共用，展开时只做垂直位移 */
+	--mp-disc-left: 0.875rem;
+	/* 歌词（pill）态唱片距 dock 底缘的间隙，探出顶的量由它派生 */
+	--mp-disc-gap: 0.25rem;
+	--mp-disc-rise: calc(var(--mp-disc-gap) + var(--mp-disc) - var(--mp-bar-h));
+	/* 文本起排位 = 唱片右缘再让开一点，两态与唱片的净间隙恒定 */
+	--mp-slot-pad: calc(var(--mp-disc) + var(--mp-disc-left) + 0.5rem);
+	--mp-width: 25rem;
+	--mp-edge: 1.25rem;
+	--mp-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+	--mp-motion: cubic-bezier(0.22, 1, 0.36, 1);
+	--mp-border: color-mix(in oklch, var(--deep-text) 28%, transparent);
+
+	position: fixed;
+	left: var(--mp-x, var(--mp-edge));
+	bottom: var(--mp-y, var(--mp-edge));
+	z-index: 70;
+	width: var(--mp-disc);
+	display: flex;
+	flex-direction: column;
+	transition:
+		width 450ms var(--mp-spring),
+		left 450ms var(--mp-motion),
+		bottom 450ms var(--mp-motion);
+}
+.music-player:not([data-state="disc"]) {
+	width: var(--mp-width);
+}
+.music-player[data-dock-direction="left"] {
+	left: auto;
+	right: var(--mp-right, var(--mp-edge));
+	transition:
+		width 450ms var(--mp-spring),
+		right 450ms var(--mp-motion),
+		bottom 450ms var(--mp-motion);
+}
+/* 拖拽中：位置实时跟随指针，关掉位置过渡避免手感发黏；宽度保留过渡以支持拖动轻量收折 */
+.music-player.is-dragging {
+	transition: left 0s, right 0s, bottom 0s;
+	cursor: grabbing;
+	user-select: none;
+}
+
+/* 尺寸探针：不可见但参与布局，供控制器读取各形态的目标尺寸 */
+.music-player__probe {
+	position: absolute;
+	top: 0;
+	left: 0;
+	visibility: hidden;
+	pointer-events: none;
+}
+.music-player__probe > span {
+	display: block;
+	width: var(--mp-width);
+}
+.music-player__probe-bar {
+	height: var(--mp-bar-h);
+}
+.music-player__probe-rise {
+	height: var(--mp-disc-rise);
+}
+
+/* ============================================
+   展开卡：面板 + 信息层共用一张表面
+   左右始终缩进 --mp-inset，展开歌单只向上生长，不改水平间距
+   ============================================ */
+.music-player__card {
+	position: relative;
+	margin-inline: var(--mp-inset);
+	background: color-mix(in srgb, var(--music-surface) 82%, transparent);
+	backdrop-filter: blur(1.25rem) saturate(1.4);
+	border-radius: 1.25rem;
+	box-shadow: 0 0.65rem 1.8rem rgb(0 0 0 / 12%);
+	opacity: 0;
+	transition: opacity 200ms ease, transform 200ms var(--mp-motion);
+}
+.music-player[data-state="bar"] .music-player__card {
+	opacity: 1;
+}
+
+/* 方向翻转过渡微动效：原地切换方向时卡片轻柔收敛再舒展，绝不硬切跳变 */
+.music-player.is-flipping-dir .music-player__card,
+.music-player.is-flipping-dir .music-player__toolbar,
+.music-player.is-flipping-dir .music-player__pill-text {
+	opacity: 0;
+	transform: scaleX(0.85);
+	transition: opacity 140ms ease, transform 140ms ease;
+}
+
+/* ============================================
+   上展面板（歌单 / 歌词双 tab）
+   ============================================ */
+.music-player__panel {
+	display: grid;
+	grid-template-rows: 0fr;
+	transition: grid-template-rows 420ms var(--mp-motion);
+}
+.music-player[data-panel="open"] .music-player__panel {
+	grid-template-rows: 1fr;
+}
+.music-player__panel-clip {
+	overflow: hidden;
+	min-height: 0;
+}
+.music-player__panel-body {
+	display: flex;
+	flex-direction: column;
+	height: min(18rem, 40vh);
+	opacity: 0;
+	transform: translate3d(0, 0.75rem, 0);
+	filter: blur(3px);
+	transition:
+		opacity 220ms ease,
+		transform 420ms var(--mp-motion),
+		filter 260ms ease;
+}
+.music-player[data-panel="open"] .music-player__panel-body {
+	opacity: 1;
+	transform: none;
+	filter: blur(0);
+	transition-delay: 80ms;
+}
+.music-player__panel-tabs {
+	position: relative;
+	display: flex;
+	gap: 0.25rem;
+	/* 原来的 1px 下边框挪进 padding-bottom，行高不变 */
+	padding: 0.5rem 0.75rem 1px;
+	flex-shrink: 0;
+}
+/* 分隔线内缩到内容盒，不贴着卡片两侧 */
+.music-player__panel-tabs::after {
+	content: "";
+	position: absolute;
+	inset-inline: 0.75rem;
+	bottom: 0;
+	height: 1px;
+	background: var(--line-divider);
+}
+/* 活跃 tab 下划线：由控制器按 tab 实测位置写 transform / width，切换时滑动 */
+.music-player__tab-indicator {
+	position: absolute;
+	left: 0;
+	bottom: 0;
+	z-index: 1;
+	width: 0;
+	height: 2px;
+	border-radius: 9999px;
+	background: var(--primary);
+	pointer-events: none;
+	transition:
+		transform 380ms var(--mp-motion),
+		width 380ms var(--mp-motion);
+}
+.music-player__tab {
+	padding: 0.375rem 0.75rem 0.5rem;
+	font-size: 0.8125rem;
+	font-weight: 600;
+	color: var(--content-meta);
+	cursor: pointer;
+	transition: color 200ms ease;
+}
+.music-player__tab:hover {
+	color: var(--deep-text);
+}
+.music-player__tab.is-active {
+	color: var(--primary);
+}
+.music-player__panel-views {
+	position: relative;
+	flex: 1;
+	min-height: 0;
+}
+.music-player__playlist-view,
+.music-player__lyrics-view {
+	position: absolute;
+	inset: 0;
+	opacity: 0;
+	visibility: hidden;
+	transform: translate3d(0, 0.5rem, 0) scale(0.98);
+	filter: blur(3px);
+	transition:
+		opacity 180ms ease,
+		transform 320ms var(--mp-motion),
+		filter 200ms ease,
+		visibility 0s linear 320ms;
+}
+.music-player__playlist-view.is-active,
+.music-player__lyrics-view.is-active {
+	opacity: 1;
+	visibility: visible;
+	transform: none;
+	filter: blur(0);
+	transition:
+		opacity 200ms ease,
+		transform 360ms var(--mp-motion),
+		filter 200ms ease;
+}
+.music-player__playlist-list {
+	height: 100%;
+	overflow-y: auto;
+	overscroll-behavior: contain;
+	padding: 0.5rem;
+}
+.music-player__playlist-list.is-entering .music-player__track {
+	animation: music-player-track-in 340ms var(--mp-motion) backwards;
+	animation-delay: calc(var(--mp-i, 0) * 26ms);
+}
+.music-player__lyrics-list {
+	height: 100%;
+	overflow-y: auto;
+	overscroll-behavior: contain;
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	gap: 0.125rem;
+	text-align: center;
+	/* 上下留白保证当前行可滚动到垂直居中 */
+	padding: 3rem 0.75rem;
+	scroll-behavior: smooth;
+}
+.music-player__lyrics-placeholder {
+	color: var(--content-meta);
+	font-size: 0.8125rem;
+	padding: 2.5rem 0;
+}
+.music-player__lrc-line {
+	font-size: 0.8125rem;
+	color: var(--content-meta);
+	padding: 0.25rem 0.5rem;
+	border-radius: 0.375rem;
+	cursor: pointer;
+	transition: color 200ms ease, font-size 200ms ease;
+}
+.music-player__lrc-line:hover {
+	color: var(--primary);
+}
+.music-player__lrc-line.is-active {
+	color: var(--primary);
+	font-weight: 700;
+	font-size: 0.9375rem;
+}
+
+/* ============================================
+   舞台与工具栏层
+   ============================================ */
+.music-player__stage {
+	position: relative;
+}
+
+/* 信息层：常驻展开卡底部，唱片骑在其左下角 */
+.music-player__info {
+	display: grid;
+	grid-template-rows: 0fr;
+	transition: grid-template-rows 420ms var(--mp-motion);
+}
+.music-player[data-state="bar"] .music-player__info {
+	grid-template-rows: 1fr;
+}
+.music-player__info-clip {
+	overflow: hidden;
+	min-height: 0;
+}
+/* 左内边距让开唱片：曲名文本始终从 --mp-slot-pad 处起排 */
+.music-player__info-surface {
+	position: relative;
+	display: flex;
+	flex-direction: column;
+	gap: 0.125rem;
+	padding: 0.5rem var(--mp-inset) 1.5rem calc(var(--mp-slot-pad) - var(--mp-inset));
+	cursor: grab;
+	touch-action: none;
+}
+
+.music-player__title {
+	margin: 0;
+	font-size: 0.9375rem;
+	font-weight: 700;
+	color: var(--deep-text);
+	white-space: nowrap;
+	overflow: hidden;
+	text-overflow: ellipsis;
+}
+.music-player__artist {
+	margin: 0;
+	font-size: 0.75rem;
+	color: var(--content-meta);
+	white-space: nowrap;
+	overflow: hidden;
+	text-overflow: ellipsis;
+}
+.music-player__progress-row {
+	display: flex;
+	align-items: center;
+	gap: 0.5rem;
+	margin-top: 0.375rem;
+}
+.music-player__time-current,
+.music-player__time-total {
+	font-size: 0.6875rem;
+	font-family: ui-monospace, SFMono-Regular, monospace;
+	color: var(--content-meta);
+	flex-shrink: 0;
+}
+.music-player__progress {
+	position: relative;
+	flex: 1;
+	height: 0.25rem;
+	border-radius: 9999px;
+	background: color-mix(in oklch, var(--deep-text) 14%, transparent);
+	cursor: pointer;
+	touch-action: none;
+}
+.music-player__progress-bar {
+	position: absolute;
+	top: 0;
+	bottom: 0;
+	left: 0;
+	width: 0%;
+	border-radius: inherit;
+	background: var(--primary);
+}
+.music-player__progress-thumb {
+	position: absolute;
+	top: 50%;
+	left: 0%;
+	width: 0.75rem;
+	height: 0.75rem;
+	margin: -0.375rem 0 0 -0.375rem;
+	border-radius: 9999px;
+	background: var(--primary);
+	box-shadow: 0 0 0 2px var(--float-panel-bg);
+	opacity: 0;
+	transition: opacity 180ms ease;
+}
+.music-player__progress:hover .music-player__progress-thumb,
+.music-player__progress.is-dragging .music-player__progress-thumb {
+	opacity: 1;
+}
+
+/* ============================================
+   工具栏层：胶囊歌词槽与工具栏交叉淡入
+   ============================================ */
+.music-player__bar {
+	position: relative;
+	/* 不设 z-index：建了层叠上下文会把按钮 tooltip 关在 dock 这一层，
+	   被唱片（z-index 2）盖住。靠 DOM 顺序在卡片之后绘制即可压住卡片底边 */
+	height: var(--mp-bar-h);
+	margin-top: 0;
+	background: var(--music-surface);
+	border-radius: 1.25rem;
+	box-shadow: 0 0.65rem 1.8rem rgb(0 0 0 / 12%);
+	cursor: grab;
+	touch-action: none;
+	transition:
+		height 450ms var(--mp-motion),
+		margin-top 450ms var(--mp-motion),
+		opacity 220ms ease,
+		transform 220ms ease;
+}
+.music-player[data-state="bar"] .music-player__bar {
+	margin-top: -1.5rem;
+}
+.music-player[data-state="disc"] .music-player__bar {
+	opacity: 0;
+	transform: scale(0.72);
+	pointer-events: none;
+}
+.music-player__slot {
+	position: relative;
+	height: 100%;
+	padding-left: var(--mp-slot-pad);
+	padding-right: 0.625rem;
+}
+.music-player__pill-text {
+	position: absolute;
+	top: 0;
+	bottom: 0;
+	left: var(--mp-slot-pad);
+	right: 1.25rem;
+	display: flex;
+	align-items: center;
+	overflow: hidden;
+	opacity: 0;
+	transform: translate3d(-0.5rem, 0, 0);
+	pointer-events: none;
+	transition: opacity 200ms ease, transform 260ms var(--mp-motion);
+}
+.music-player[data-state="pill"] .music-player__pill-text {
+	opacity: 1;
+	transform: none;
+}
+.music-player__pill-label {
+	display: inline-block;
+	white-space: nowrap;
+	font-size: 0.875rem;
+	font-weight: 600;
+	color: var(--deep-text);
+	will-change: transform;
+}
+.music-player__pill-label.is-marquee {
+	animation: music-player-marquee var(--mp-marquee-duration, 7s) ease-in-out infinite alternate;
+}
+.music-player__toolbar {
+	position: absolute;
+	top: 0;
+	bottom: 0;
+	/* 键宽 2.25rem、图标 1.25rem 居中，两侧各空 0.5rem：
+	   左移这个内缩距，首键图标左缘才和上方曲名真正同一条竖线 */
+	left: calc(var(--mp-slot-pad) - 0.5rem);
+	right: 0.625rem;
+	display: flex;
+	align-items: center;
+	justify-content: flex-start;
+	gap: 0.125rem;
+	opacity: 0;
+	transform: translate3d(0, 0.375rem, 0);
+	pointer-events: none;
+	transition: opacity 200ms ease, transform 260ms var(--mp-motion);
+}
+.music-player[data-state="bar"] .music-player__toolbar {
+	opacity: 1;
+	transform: none;
+	pointer-events: auto;
+}
+
+/* 工具栏按钮 */
+.music-player__btn {
+	position: relative;
+	width: 2.25rem;
+	height: 2.25rem;
+	flex-shrink: 0;
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	border-radius: 9999px;
+	color: var(--content-meta);
+	cursor: pointer;
+	transition: background-color 200ms ease, color 200ms ease, transform 150ms ease;
+}
+.music-player__btn:hover {
+	background: var(--btn-plain-bg-hover);
+	color: var(--primary);
+}
+.music-player__btn:active {
+	transform: scale(0.92);
+}
+.music-player__btn.is-active {
+	color: var(--primary);
+}
+.music-player__btn--play {
+	width: 2.75rem;
+	height: 2.75rem;
+	color: var(--deep-text);
+}
+.music-player__btn--play:hover {
+	color: var(--primary);
+}
+
+/* 工具提示：图标正上方浮现（nav-tools-item 同款样式，方向翻转向下） */
+.music-player__btn::after {
+	content: attr(data-tooltip);
+	position: absolute;
+	bottom: calc(100% + 0.5rem);
+	left: 50%;
+	padding: 0.25rem 0.5rem;
+	border-radius: var(--radius-small);
+	background: var(--deep-text);
+	color: var(--page-bg);
+	font-size: 0.75rem;
+	line-height: 1.3;
+	white-space: nowrap;
+	opacity: 0;
+	pointer-events: none;
+	transform: translate(-50%, 0.25rem);
+	transition: opacity 180ms ease, transform 180ms ease, visibility 180ms ease;
+	visibility: hidden;
+	z-index: 5;
+}
+.music-player__btn:hover::after,
+.music-player__btn:focus-visible::after {
+	opacity: 1;
+	visibility: visible;
+	transform: translate(-50%, 0);
+}
+/* 音量条弹出时提示让位，避免与其在上方重叠 */
+.music-player__volume:hover .music-player__btn--volume::after,
+.music-player__volume:focus-within .music-player__btn--volume::after {
+	opacity: 0;
+	visibility: hidden;
+}
+
+/* 音量 popover：悬停 / 聚焦弹出拖拽条 */
+.music-player__volume {
+	position: relative;
+	display: flex;
+}
+/* 按钮与 popover 间隙的悬停桥接，防止移入途中弹层消失 */
+.music-player__volume::before {
+	content: "";
+	position: absolute;
+	left: 0;
+	right: 0;
+	bottom: 100%;
+	height: 0.75rem;
+}
+/* 音量 popover：悬停 / 聚焦弹出横向音量条，两端是音量图标，滑块上方吊着数值气泡 */
+.music-player__volume-pop {
+	/* 位置与形变全部由这几个变量驱动，写在 popover 上是为了让轨道、滑块、气泡、
+	   两端图标都能继承到同一份 --vol-over（橡皮筋越界位移，向右为正） */
+	--vol: 70;
+	--vol-over: 0px;
+	--vol-stretch: 0;
+	--vol-press: 0;
+	--vol-thick: calc(1 + var(--vol-press) * 0.5);
+
+	position: absolute;
+	bottom: calc(100% + 0.375rem);
+	/* 以音量按钮中心为锚：-50% 是自身宽度，只能并进 transform 里，
+	   所以开合两态的 transform 都得带上它，不能简单写成 none */
+	left: 50%;
+	display: flex;
+	align-items: center;
+	gap: 0.375rem;
+	padding: 0.625rem 0.75rem;
+	background: var(--music-surface);
+	border-radius: 9999px;
+	box-shadow: 0 0.5rem 1.2rem rgb(0 0 0 / 12%);
+	opacity: 0;
+	transform: translate3d(-50%, 0.25rem, 0) scale(0.94);
+	transform-origin: 50% 100%;
+	pointer-events: none;
+	transition:
+		opacity 180ms ease,
+		transform 240ms var(--mp-spring);
+}
+/* 拖拽中指针纵向游走出胶囊也会丢掉 :hover，用 data-dragging 把弹层钉住不让它中途收回去 */
+.music-player__volume:hover .music-player__volume-pop,
+.music-player__volume:focus-within .music-player__volume-pop,
+.music-player__volume:has(.music-player__volume-pop[data-dragging]) .music-player__volume-pop {
+	opacity: 1;
+	transform: translate3d(-50%, 0, 0);
+	pointer-events: auto;
+}
+.music-player__volume-pop[data-dragging] {
+	--vol-press: 1;
+}
+/* 两端图标被轨道一起带出去，但只让挪半个间隙的量——胶囊尺寸是固定的，
+   图标不像参考实现那样能把容器撑大，超出部分由滑块自己盖上去 */
+.music-player__volume-icon {
+	flex: none;
+	color: var(--deep-text);
+	opacity: 0.55;
+}
+.music-player__volume-icon--start {
+	transform: translateX(clamp(-0.375rem, var(--vol-over), 0px));
+}
+.music-player__volume-icon--end {
+	transform: translateX(clamp(0px, var(--vol-over), 0.375rem));
+}
+/* 横向音量条：左端为最小、右端为最大。
+   --vol 是 0..100 的已提交位置，--vol-over 是橡皮筋越界位移（px，向右为正），
+   --vol-stretch 是 |over| 占越界上限的比例（0..1），只用于「拉得越紧越细」的形变。 */
+.music-player__volume-track {
+	position: relative;
+	width: 6.5rem;
+	height: 0.375rem;
+	border-radius: 9999px;
+	cursor: pointer;
+	/* 胶囊内任意位置都要能起手拖动，同时阻止浏览器把横向手势当成页面滚动 */
+	touch-action: none;
+}
+/* 未填充的槽单独用伪元素画，才能跟着变粗而不牵动滑块与气泡的纵向位置 */
+.music-player__volume-track::before {
+	content: "";
+	position: absolute;
+	inset: 0;
+	border-radius: 9999px;
+	background: color-mix(in oklch, var(--deep-text) 14%, transparent);
+	transform: scaleY(var(--vol-thick));
+}
+.music-player__volume-bar {
+	position: absolute;
+	inset: 0 auto 0 0;
+	width: max(0px, calc(var(--vol) * 1% + var(--vol-over)));
+	border-radius: 9999px;
+	background: var(--primary);
+	transform: scaleY(calc(var(--vol-thick) - var(--vol-stretch) * 0.32));
+	transition:
+		width 260ms var(--mp-spring),
+		transform 220ms var(--mp-spring);
+}
+.music-player__volume-thumb {
+	position: absolute;
+	top: 50%;
+	left: calc(var(--vol) * 1% + var(--vol-over));
+	width: 1rem;
+	height: 1rem;
+	transform: translate(-50%, -50%) scale(calc(1 + var(--vol-press) * 0.28));
+	border-radius: 9999px;
+	background: var(--primary);
+	box-shadow: 0 0 0 2px var(--music-surface);
+	transition:
+		left 260ms var(--mp-spring),
+		transform 220ms var(--mp-spring);
+}
+/* 拖拽中位置 1:1 跟手（越界量由指针直接给出，插值反而糊），只保留形变过渡 */
+.music-player__volume-pop[data-dragging] .music-player__volume-bar,
+.music-player__volume-pop[data-dragging] .music-player__volume-thumb {
+	transition: transform 220ms var(--mp-spring);
+}
+/* 数值气泡：浮在胶囊上沿之外，吊着滑块走。left 常驻过渡 → 拖拽时落后于 1:1 的滑块，形成跟随感 */
+.music-player__volume-bubble {
+	position: absolute;
+	left: calc(var(--vol) * 1% + var(--vol-over));
+	/* 气泡以轨道为基准，要跨过「图标高出轨道的那一截 + 胶囊 0.625rem 内边距 + 一点缝」才出得了胶囊顶，
+	   1.5rem 是这三段加起来再留余量；改图标字号或内边距时这里要跟着看一眼 */
+	bottom: calc(100% + 1.5rem);
+	min-width: 1.75rem;
+	padding: 0.0625rem 0.3125rem;
+	border-radius: 9999px;
+	background: var(--primary);
+	/* primary 在浅色主题近乎全黑、深色主题近乎全白，取同面板底色的反色才两头都够对比 */
+	color: var(--music-surface);
+	font-size: 0.6875rem;
+	font-weight: 600;
+	line-height: 1.4;
+	font-variant-numeric: tabular-nums;
+	text-align: center;
+	white-space: nowrap;
+	opacity: 0;
+	transform: translate(-50%, 0.25rem) scale(0.7);
+	pointer-events: none;
+	transition:
+		left 180ms var(--mp-motion),
+		opacity 140ms ease,
+		transform 200ms var(--mp-spring);
+}
+.music-player__volume-pop[data-bubble] .music-player__volume-bubble {
+	opacity: 1;
+	transform: translate(-50%, 0) scale(1);
+}
+
+/* ============================================
+   唱片圆碟：三态复用，两态 left 同为 --mp-disc-left，展开时只做垂直位移
+   pill 态底边留 --mp-disc-gap、圆心落在 dock 上沿之下；
+   bar 态圆心对齐 dock 上沿，上半截被信息层包住
+   ============================================ */
+.music-player__disc {
+	position: absolute;
+	left: 0;
+	bottom: 0;
+	z-index: 2;
+	width: var(--mp-disc);
+	height: var(--mp-disc);
+	padding: 0;
+	border-radius: 9999px;
+	overflow: hidden;
+	cursor: grab;
+	touch-action: none;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	background: color-mix(in oklch, var(--deep-text) 10%, var(--float-panel-bg));
+	border: 0.25rem solid color-mix(in oklch, var(--float-panel-bg) 90%, transparent);
+	box-shadow: 0 0.4rem 1rem rgb(0 0 0 / 16%);
+	transition: left 450ms var(--mp-spring), right 450ms var(--mp-spring), bottom 450ms var(--mp-spring);
+}
+.music-player[data-state="pill"] .music-player__disc {
+	left: var(--mp-disc-left);
+	bottom: var(--mp-disc-gap);
+}
+.music-player[data-state="bar"] .music-player__disc {
+	left: var(--mp-disc-left);
+	bottom: calc(var(--mp-bar-h) - var(--mp-disc) / 2);
+}
+/* 向左展开镜像样式 */
+.music-player[data-dock-direction="left"] .music-player__disc {
+	left: auto;
+	right: 0;
+}
+.music-player[data-dock-direction="left"][data-state="pill"] .music-player__disc {
+	left: auto;
+	right: var(--mp-disc-left);
+	bottom: var(--mp-disc-gap);
+}
+.music-player[data-dock-direction="left"][data-state="bar"] .music-player__disc {
+	left: auto;
+	right: var(--mp-disc-left);
+	bottom: calc(var(--mp-bar-h) - var(--mp-disc) / 2);
+}
+.music-player[data-dock-direction="left"] .music-player__slot {
+	padding-left: 0.625rem;
+	padding-right: var(--mp-slot-pad);
+}
+.music-player[data-dock-direction="left"] .music-player__toolbar {
+	left: 0.625rem;
+	right: calc(var(--mp-slot-pad) - 0.5rem);
+	justify-content: flex-end;
+}
+.music-player[data-dock-direction="left"] .music-player__pill-text {
+	left: 1.25rem;
+	right: var(--mp-slot-pad);
+	justify-content: flex-end;
+}
+.music-player[data-dock-direction="left"] .music-player__info-surface {
+	padding: 0.5rem calc(var(--mp-slot-pad) - var(--mp-inset)) 1.5rem var(--mp-inset);
+}
+/* 唱片中心孔 */
+.music-player__disc::after {
+	content: "";
+	position: absolute;
+	top: 50%;
+	left: 50%;
+	width: 0.875rem;
+	height: 0.875rem;
+	margin: -0.4375rem 0 0 -0.4375rem;
+	border-radius: 9999px;
+	background: var(--float-panel-bg);
+	border: 1px solid var(--mp-border);
+}
+.music-player__disc-placeholder {
+	color: var(--content-meta);
+	opacity: 0.5;
+}
+.music-player__disc-img {
+	position: absolute;
+	inset: 0;
+	width: 100%;
+	height: 100%;
+	object-fit: cover;
+	animation: spin-slow 12s linear infinite;
+	animation-play-state: paused;
+}
+.music-player__disc-img.is-empty {
+	opacity: 0;
+}
+.music-player[data-playing="true"] .music-player__disc-img {
+	animation-play-state: running;
+}
+
+/* ============================================
+   歌单条目
+   ============================================ */
+.music-player__track {
+	display: flex;
+	align-items: center;
+	gap: 0.625rem;
+	padding: 0.375rem 0.5rem;
+	border-radius: 0.625rem;
+	cursor: pointer;
+	transition: background-color 150ms ease;
+}
+.music-player__track:hover,
+.music-player__track.is-active {
+	background: var(--btn-plain-bg-hover);
+}
+.music-player__track-cover-wrap {
+	position: relative;
+	width: 2rem;
+	height: 2rem;
+	flex-shrink: 0;
+	border-radius: 0.375rem;
+	overflow: hidden;
+	background: color-mix(in oklch, var(--deep-text) 10%, transparent);
+}
+.music-player__track-cover {
+	width: 100%;
+	height: 100%;
+	object-fit: cover;
+}
+.music-player__track-active {
+	position: absolute;
+	inset: 0;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	background: color-mix(in oklch, var(--primary) 25%, transparent);
+	color: var(--primary);
+}
+.music-player__track-meta {
+	flex: 1;
+	min-width: 0;
+}
+.music-player__track-title {
+	font-size: 0.75rem;
+	font-weight: 700;
+	color: var(--deep-text);
+	white-space: nowrap;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	transition: color 150ms ease;
+}
+.music-player__track:hover .music-player__track-title {
+	color: var(--primary);
+}
+.music-player__track-artist {
+	font-size: 0.6875rem;
+	color: var(--content-meta);
+	white-space: nowrap;
+	overflow: hidden;
+	text-overflow: ellipsis;
+}
+
+/* ============================================
+   加载指示：只占信息层那一块，不给整个组件蒙遮罩
+   ============================================ */
+.music-player__loading {
+	position: absolute;
+	inset: 0;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	color: var(--primary);
+	opacity: 0;
+	pointer-events: none;
+	transition: opacity 250ms ease;
+}
+/* 加载中把曲名 / 艺术家 / 进度三行淡掉，只留居中的转圈 */
+.music-player__info-surface > * {
+	transition: opacity 220ms ease;
+}
+.music-player.is-loading .music-player__info-surface > :not(.music-player__loading) {
+	opacity: 0;
+}
+.music-player.is-loading .music-player__loading {
+	opacity: 1;
+	pointer-events: auto;
+}
+.music-player.is-loading .music-player__loading svg {
+	animation: spin-slow 1.2s linear infinite;
+}
+
+/* 移动端由 MobileDock 承担 */
+@media (max-width: 768px) {
+	.music-player {
+		display: none !important;
+	}
+}
+
+@media (prefers-reduced-motion: reduce) {
+	.music-player,
+	.music-player *,
+	.music-player *::before,
+	.music-player *::after {
+		transition-duration: 0.01ms !important;
+		animation-duration: 0.01ms !important;
+		animation-iteration-count: 1 !important;
+	}
+}

@@ -50,12 +50,12 @@
 ```
 src/
 ├── assets/images/       # 头像、封面等构建时图片
-├── components/          # 按功能域组织的组件（148 个文件）
+├── components/          # 按功能域组织的组件（149 个文件）
 │   ├── analytics/       # GA, Clarity, Umami (3)
 │   ├── comment/         # 评论系统：index + 5 种后端 + 3 个弹窗组件 + NotebookComment 笔记本列表页自研评论区（笔记引用 >>QUOTE>> 编码 + Waline 树形回复 pid/rid/at + 表情 :item: 标记，昵称/邮箱必填） (10)
 │   ├── common/          # 跨域共享基础组件 (17)
 │   ├── controls/        # 交互控件：搜索、归档（类型 Tab 筛选）、主题、Dock (8)
-│   ├── features/        # 独立功能模块 (26, 含 music-visualizer/、ArticleTtsPlayer.svelte 文章朗读播放器)
+│   ├── features/        # 独立功能模块 (27, 含 DrawerMusicPlayer.astro 抽屉播放器、music-visualizer/、ArticleTtsPlayer.svelte 文章朗读播放器)
 │   ├── layout/          # 布局组件：Navbar, Footer, SideBar, HomeHero, NavbarProfileCard (20)
 │   ├── misc/            # License, RelatedPosts, SharePoster (3)
 │   ├── moments/         # 动态卡片与评论弹窗
@@ -69,18 +69,18 @@ src/
 │   ├── album/ apps/ bangumi/ changelog/ upstream-changelog/ daohang/ equipment/
 │   ├── friends/ life/ moments/ posts/ spec/ ziyuan/  # spec/about.mdx 为组件化 Q&A；更新日志图谱组件（ChangelogGraph）用于 /changelog/ 页与 /changelog/upstream/ 原作者图谱子馆（2026-08-30 起不再嵌入关于页）
 │   └── life/notebooks/  # notebooks 集合物理位置（life 的子目录，2026-09-27 起归档改 card 流，支持 images 多图 12字展开 + 年份下拉联动热力图与列表）
-├── i18n/                # 国际化（5 种语言，353 个翻译键）
+├── i18n/                # 国际化（5 种语言，354 个翻译键）
 │   └── languages/       # en.ts, zh_CN.ts, zh_TW.ts, ja.ts, ru.ts
 ├── layouts/             # Layout.astro (591行), MainGridLayout.astro (305行)
 ├── notes/               # Obsidian 笔记（不发布）
-├── pages/               # 路由（43 个文件；admin 后台已删除，勿重建）
+├── pages/               # 路由（45 个文件；admin 后台已删除，勿重建）
 │   ├── api/             # JSON API (3)：calendar.json.ts, home-stats.json.ts, holidays.json.ts
 │   ├── album/ bangumi/ books/ categories/ equipment/ life/ moments/ posts/ // moments/[slug] 已删除
 │   └── 404, about, archive, apps, changelog (含 upstream/), circle, debug-urls, friends,
-│       guestbook, life/notebooks, movies-games/, music, projects, search,
+│       guestbook, life/notebooks, movies-games/, music, mf (短链秒跳), projects, search,
 │       sponsor, rss, robots.txt, og
 ├── plugins/             # 自定义 remark/rehype 插件 (10)
-├── styles/              # CSS 样式（77 个文件，含 footer-signature 现代页脚、navbar-profile-card、dropdown-menu、about 技术栈/时间线/更新日志图谱、equipment 卡片）
+├── styles/              # CSS 样式（78 个文件，含 music-player.css、footer-signature 现代页脚、navbar-profile-card、dropdown-menu、about 技术栈/时间线/更新日志图谱、equipment 卡片）
 │   ├── tokens/          # 设计令牌：colors, breakpoints, animation, z-index
 │   ├── base/            # reset, utilities
 │   ├── components/      # 组件样式
@@ -90,7 +90,7 @@ src/
 │   ├── transitions/     # Swup 过渡动画
 │   └── vendor/          # 第三方覆盖
 ├── types/               # TypeScript 类型：config.ts, bangumi.ts, guestbook-chat.ts
-└── utils/               # 工具函数（45 个文件，含 build-platform.ts / calendar-milestones.ts / navbar-profile-controller.ts / navbar-dropdown-controller.ts / changelog.ts / tag-graph 控制器 / tts-text 正文提取等）
+└── utils/               # 工具函数（47 个文件，含 music-player-controller.ts / swup-lifecycle.ts / build-platform.ts / calendar-milestones.ts / navbar-profile-controller.ts / navbar-dropdown-controller.ts / changelog.ts / tag-graph 控制器 / tts-text 正文提取等）
     ├── 8 个控制器模块   # 见第 10 节
     └── 35 个业务工具    # build-platform, content-utils, category-tree（文件夹即分类，多级 `a/b` 推导 + CategoryNode 树）, navbar-dropdown-controller, date-utils, image-utils, url-utils, tts-text（朗读正文提取）...
 
@@ -202,7 +202,7 @@ Layout.astro          ← HTML 骨架：<html>, <head>, <body>, 全局组件, �
 | changelog | 更新日志 |
 | equipment | 我的设备（2026-09-27 新增：文件夹即分组，schema 含 name/spec/description/image/url/urlLabel/weight/enabled） |
 
-> 友链页支撑系统（2026-08）：`.github/workflows/friend-status.yml`（每天 5:17 检测友链延迟 → public/friends-status.json，四档 fast/ok/slow/down）与 `friend-screenshots.yml`（每周日 3:23 全量补漏 + push main 变更 `src/content/friends/**` 时自动触发，Playwright 截图 → public/assets/friends-shots/{contentId}.webp，伪装真实浏览器 + load 后等字体就绪、网络空闲（6s 超时兜底）与 2s 缓冲，失败 3 次尝试）。前端 fetch 状态 JSON 注入徽标，无 JSON/无截图时优雅降级（卡片退化为纯头像卡）。改 friends 集合结构时注意同步这两个脚本（正则读 frontmatter）。**截图文件名必须是全小写**（Astro glob loader 的 entry id 为全小写 slug，脚本已按 `md 文件名.toLowerCase()` 输出；含大写的 webp 在 Windows dev 误判存在导致 404，线上 Linux 则直接退化）。桌面端悬浮大图预览（2026-10 移植自 MmzMing 知识库同款设计）：相框内衬布局（`padding: 0.5rem`）+ `var(--deep-text)` 自适应边框与内外同心圆角（16px/8px）+ 光标偏移跟随与智能视口碰撞避界（右侧/底部翻转贴靠），Portal 单例挂载于 `src/pages/friends.astro`，样式位于 `src/styles/components/friend-preview.css`。
+> 友链页支撑系统（2026-08）：`.github/workflows/friend-status.yml`（每周一 5:17 检测友链延迟 → public/friends-status.json，四档 fast/ok/slow/down）与 `friend-screenshots.yml`（每周日 3:23 全量补漏 + push main 变更 `src/content/friends/**` 时自动触发，Playwright 截图 → public/assets/friends-shots/{contentId}.webp，伪装真实浏览器 + load 后等字体就绪、网络空闲（6s 超时兜底）与 2s 缓冲，失败 3 次尝试）。前端 fetch 状态 JSON 注入徽标，无 JSON/无截图时优雅降级（卡片退化为纯头像卡）。改 friends 集合结构时注意同步这两个脚本（正则读 frontmatter）。**截图文件名必须是全小写**（Astro glob loader 的 entry id 为全小写 slug，脚本已按 `md 文件名.toLowerCase()` 输出；含大写的 webp 在 Windows dev 误判存在导致 404，线上 Linux 则直接退化）。桌面端悬浮大图预览（2026-10 移植自 MmzMing 知识库同款设计）：相框内衬布局（`padding: 0.5rem`）+ `var(--deep-text)` 自适应边框与内外同心圆角（16px/8px）+ 光标偏移跟随与智能视口碰撞避界（右侧/底部翻转贴靠），Portal 单例挂载于 `src/pages/friends.astro`，样式位于 `src/styles/components/friend-preview.css`。
 
 > ⚠️ **朋友圈数据链路（强制提醒义务）**：友链朋友圈页（`/circle/`）的数据来自 `cir.imki.cn/data.json`，由独立仓库（GitHub: mengkuikun/hexo-circle-of-friends）定时生成并通过 EdgeOne Pages 静态托管。该程序的 firefly 主题解析器**依赖本博客友链页卡片结构**（`css_rules.yaml`）：名字=[`.friend-card`]`data-title`、链接=[`.friend-card`]`data-siteurl`、头像=[`.friend-card-avatar__img`]`data-src`。**凡是修改友链页卡片 HTML/friends 集合字段/友链 Card 组件结构，必须同步检查并提醒站长**：一是确认 `css_rules.yaml` 的 firefly 选择器仍匹配新结构（必要时同步修改并推送到 hexo-circle-of-friends 仓库）；二是验证「data.json 的 last_updated_time 与文章数」确实更新（抓一次页面或等下一轮 Action）。2026-08 曾因友链卡 class 从 `.friend-card-name/.friend-card-link` 改为 data 属性导致朋友圈停更 6 天，务必引以为戒。
 

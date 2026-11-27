@@ -3,9 +3,7 @@ import { getCollection } from "astro:content";
 import type { MarkdownHeading } from "astro";
 import { Icon } from "astro-icon/components";
 import Search from "@/components/controls/Search.svelte";
-import MusicPlayer from "@/components/features/MusicPlayer.astro";
 import PostDirectoryList from "@/components/widget/PostDirectoryList.astro";
-import { musicPlayerConfig } from "@/config/musicConfig";
 import I18nKey from "@/i18n/i18nKey";
 import { i18n } from "@/i18n/translation";
 import { getCategoryList, getTagList } from "@/utils/content-utils";
@@ -28,36 +26,6 @@ const announcementLink =
 	announcementData && "link" in announcementData
 		? announcementData.link
 		: undefined;
-
-// Fetch music playlist from bangumi (same source as music page)
-const metingApiBase = musicPlayerConfig.meting?.api
-	? musicPlayerConfig.meting.api.split("?")[0]
-	: "https://your-meting-api.example.com/api";
-const customBangumi = await getCollection("bangumi");
-const musicEntries = customBangumi
-	.filter((item) => item.data.category === "music")
-	.map((item) => {
-		const { data } = item;
-		const imageSrc =
-			typeof data.image === "string" ? data.image : data.image.src;
-		return {
-			name: data.title,
-			artist: data.artist || "",
-			pic: imageSrc,
-			url: data.audioUrl || "",
-			lrc: data.lrcUrl || "",
-			metingServer: data.metingServer || "",
-			metingId: data.metingId || "",
-			published: data.published,
-		};
-	})
-	.filter((item) => item.url || item.metingId)
-	.sort(
-		(a, b) =>
-			new Date(b.published || 0).getTime() -
-			new Date(a.published || 0).getTime(),
-	);
-const dockMusicPlaylist = JSON.stringify(musicEntries);
 ---
 
 <div class="floating-dock" id="floating-dock">
@@ -81,14 +49,6 @@ const dockMusicPlaylist = JSON.stringify(musicEntries);
         <span class="dock-btn-icon"><Icon name="material-symbols:campaign-outline-rounded" is:inline class="text-2xl" /></span>
         <span class="dock-btn-label">公告</span>
       </button>
-
-      <!-- 音乐 -->
-      {musicPlayerConfig.showInNavbar !== false && (
-        <button class="dock-btn" id="dock-music-btn" aria-label={i18n(I18nKey.music)} type="button">
-          <span class="dock-btn-icon"><Icon name="material-symbols:music-note-rounded" is:inline class="text-2xl" /></span>
-          <span class="dock-btn-label">音乐</span>
-        </button>
-      )}
 
 
       <!-- 笔记本 -->
@@ -188,12 +148,6 @@ const dockMusicPlaylist = JSON.stringify(musicEntries);
   </div>
 </div>
 
-{musicPlayerConfig.showInNavbar !== false && (
-<div class="dock-drawer dock-drawer-closed" id="dock-drawer-music">
-  <div class="dock-drawer-title">[ {i18n(I18nKey.music)} ]</div>
-  <MusicPlayer externalPlaylist={dockMusicPlaylist} metingApiBase={metingApiBase} />
-</div>
-)}
 
 <!-- Search 组件（创建 #search-panel，由 dock 按钮触发） -->
 <Search client:load />
@@ -268,7 +222,6 @@ const dockMusicPlaylist = JSON.stringify(musicEntries);
       "dock-tags-btn": "dock-drawer-tags",
       "dock-categories-btn": "dock-drawer-categories",
       "dock-announcement-btn": "dock-drawer-announcement",
-      "dock-music-btn": "dock-drawer-music",
       "dock-toc-btn": "dock-drawer-toc",
       "dock-posts-btn": "dock-drawer-posts",
     };

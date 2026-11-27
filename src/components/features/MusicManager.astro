@@ -1,40 +1,10 @@
 ---
-import { getCollection } from "astro:content";
 import { musicPlayerConfig } from "@/config/musicConfig";
 import I18nKey from "@/i18n/i18nKey";
 import { i18n } from "@/i18n/translation";
 import { url } from "@/utils/url-utils";
 
 const config = musicPlayerConfig;
-
-// 从 bangumi 集合加载音乐播放列表（与音乐页面共享数据源）
-const metingApiBase = config.meting?.api
-	? config.meting.api.split("?")[0]
-	: "https://your-meting-api.example.com/api";
-const customBangumi = await getCollection("bangumi");
-const bangumiPlaylist = customBangumi
-	.filter((item) => item.data.category === "music")
-	.map((item) => {
-		const { data } = item;
-		const imageSrc =
-			typeof data.image === "string" ? data.image : data.image.src;
-		return {
-			name: data.title,
-			artist: data.artist || "",
-			url: data.audioUrl || "",
-			pic: imageSrc,
-			lrc: data.lrcUrl || "",
-			metingServer: data.metingServer || "",
-			metingId: data.metingId || "",
-			published: data.published,
-		};
-	})
-	.filter((item) => item.url || item.metingId)
-	.sort(
-		(a, b) =>
-			new Date(b.published || 0).getTime() -
-			new Date(a.published || 0).getTime(),
-	);
 
 const localPlaylist =
 	config.mode === "local" && config.local?.playlist
@@ -64,35 +34,19 @@ const managerConfigStr = JSON.stringify({
 	localPlaylist: localPlaylist,
 	volume: config.volume ?? 0.7,
 	playMode: config.playMode ?? "list",
-	showLyrics: config.showLyrics ?? true,
 	i18n: {
-		noPlaying: i18n(I18nKey.musicNoPlaying),
-		lyrics: i18n(I18nKey.musicLyrics),
-		volume: i18n(I18nKey.musicVolume),
-		playMode: i18n(I18nKey.musicPlayMode),
-		prev: i18n(I18nKey.musicPrev),
-		next: i18n(I18nKey.musicNext),
-		playlist: i18n(I18nKey.musicPlaylist),
-		noLyrics: i18n(I18nKey.musicNoLyrics),
-		loadingLyrics: i18n(I18nKey.musicLoadingLyrics),
-		failedLyrics: i18n(I18nKey.musicFailedLyrics),
 		noSongs: i18n(I18nKey.musicNoSongs),
 		error: i18n(I18nKey.musicError),
-		play: i18n(I18nKey.musicPlay),
-		pause: i18n(I18nKey.musicPause),
-		progress: i18n(I18nKey.musicProgress),
-		noCover: i18n(I18nKey.musicNoCover),
 	},
 });
 ---
 
-<script is:inline data-swup-ignore-script define:vars={{ managerConfigStr, bangumiPlaylistJson: JSON.stringify(bangumiPlaylist), metingApiBase }}>
+<script is:inline data-swup-ignore-script define:vars={{ managerConfigStr }}>
 (function () {
     // Singleton guard – only create once
     if (window.__fireflyMusic) return;
 
     var config = JSON.parse(managerConfigStr);
-    var _externalLoaded = false;
 
     // ── Helpers ──────────────────────────────────────────────
     function formatTime(seconds) {
@@ -128,8 +82,6 @@ const managerConfigStr = JSON.stringify({
     // ── Audio element (persistent, attached to body) ────────
     var audio = document.getElementById('firefly-music-audio') || document.createElement('audio');
     audio.id = 'firefly-music-audio';
-    audio.crossOrigin = 'anonymous';
-    audio.preload = 'none';
     audio.style.display = 'none';
     if (!audio.parentNode) document.body.appendChild(audio);
 
@@ -144,6 +96,7 @@ const managerConfigStr = JSON.stringify({
             : (config.volume || 0.7),
         isMuted: false,
         lyrics: [],
+        lyricsStatus: 'loading',
         currentLrcIndex: -1,
         initialized: false,
         initializing: false,
@@ -201,28 +154,13 @@ const managerConfigStr = JSON.stringify({
     }
 
     // ── Lyrics ───────────────────────────────────────────────
-        var lrcOffset = parseFloat(localStorage.getItem('music-lrc-offset') || '0') || 0;
-
-        function syncLrcIndex() {
-            if (state.lyrics.length === 0) return;
-            // offset: negative = lyrics delayed (more natural feel), positive = lyrics ahead
-            var ct = audio.currentTime + lrcOffset;
-            var idx = -1;
-            for (var i = 0; i < state.lyrics.length; i++) {
-                if (ct >= state.lyrics[i].time) idx = i;
-                else break;
-            }
-            if (idx !== state.currentLrcIndex) {
-                state.currentLrcIndex = idx;
-                emit('fm:lrc-index', { index: idx });
-            }
-        }
-
     function loadLyrics(track) {
         state.lyrics = [];
+        state.lyricsStatus = 'loading';
         state.currentLrcIndex = -1;
 
         if (!track.lrc) {
+            state.lyricsStatus = 'none';
             emit('fm:lyrics', { lyrics: [], status: 'none' });
             return;
         }
@@ -232,22 +170,24 @@ const managerConfigStr = JSON.stringify({
             || /\.(lrc|txt)(\?|#|$)/i.test(track.lrc);
 
         if (isLrcUrl) {
+            state.lyricsStatus = 'loading';
             emit('fm:lyrics', { lyrics: [], status: 'loading' });
             fetch(track.lrc)
                 .then(function (r) { return r.text(); })
                 .then(function (text) {
                     state.lyrics = parseLRC(text);
-                    emit('fm:lyrics', { lyrics: state.lyrics, status: 'loaded' });
-                    if (!audio.paused) syncLrcIndex();
+                    state.lyricsStatus = state.lyrics.length > 0 ? 'loaded' : 'none';
+                    emit('fm:lyrics', { lyrics: state.lyrics, status: state.lyricsStatus });
                 })
                 .catch(function () {
                     state.lyrics = [];
+                    state.lyricsStatus = 'failed';
                     emit('fm:lyrics', { lyrics: [], status: 'failed' });
                 });
         } else {
             state.lyrics = parseLRC(track.lrc);
-            emit('fm:lyrics', { lyrics: state.lyrics, status: state.lyrics.length > 0 ? 'loaded' : 'none' });
-            if (!audio.paused && state.lyrics.length > 0) syncLrcIndex();
+            state.lyricsStatus = state.lyrics.length > 0 ? 'loaded' : 'none';
+            emit('fm:lyrics', { lyrics: state.lyrics, status: state.lyricsStatus });
         }
     }
 
@@ -374,7 +314,17 @@ const managerConfigStr = JSON.stringify({
         });
 
         // Lyrics sync
-        syncLrcIndex();
+        if (state.lyrics.length > 0) {
+            var idx = -1;
+            for (var i = 0; i < state.lyrics.length; i++) {
+                if (ct >= state.lyrics[i].time) idx = i;
+                else break;
+            }
+            if (idx !== state.currentLrcIndex) {
+                state.currentLrcIndex = idx;
+                emit('fm:lrc-index', { index: idx });
+            }
+        }
     });
 
     audio.addEventListener('ended', function () {
@@ -386,34 +336,6 @@ const managerConfigStr = JSON.stringify({
         emit('fm:error', { message: state.error });
     });
 
-    // ── Meting track resolution ─────────────────────────────
-    async function resolveMetingTracks(playlist) {
-        var base = (metingApiBase || 'https://your-meting-api.example.com/api') + '?server=';
-        for (var i = 0; i < playlist.length; i++) {
-            var track = playlist[i];
-            if (track.metingServer && track.metingId && !track.url) {
-                try {
-                    var s = encodeURIComponent(track.metingServer);
-                    var id = encodeURIComponent(track.metingId);
-                    var res = await fetch(base + s + '&type=song&id=' + id);
-                    if (!res.ok) throw new Error('HTTP ' + res.status);
-                    var raw = await res.json();
-                    var data = Array.isArray(raw) ? raw[0] : raw;
-                    if (data) {
-                        if (data.url) track.url = data.url;
-                        if (data.pic && !track.pic) track.pic = data.pic;
-                        if (data.lrc && !track.lrc) track.lrc = data.lrc;
-                        track.artist = track.artist || data.author || data.artist || '';
-                        track.name = (track.name && track.name !== track.metingId) ? track.name : (data.title || track.name);
-                    }
-                } catch(e) {
-                    console.warn('[MusicManager] Meting resolve failed:', track.name, e);
-                }
-            }
-        }
-        return playlist;
-    }
-
     // ── Init (idempotent) ────────────────────────────────────
     async function init() {
         if (state.initialized || state.initializing) return;
@@ -424,15 +346,6 @@ const managerConfigStr = JSON.stringify({
                 await fetchMetingData();
             } else if (config.mode === 'local') {
                 state.playlist = config.localPlaylist || [];
-            }
-
-            // 自动加载 bangumi 播放列表（构建时注入）
-            var bangumi = [];
-            try { bangumi = JSON.parse(bangumiPlaylistJson || '[]'); } catch(e) {}
-            if (bangumi.length > 0 && !_externalLoaded) {
-                var resolved = await resolveMetingTracks(bangumi);
-                state.playlist = resolved;
-                _externalLoaded = true;
             }
 
             if (state.playlist.length > 0) {
@@ -480,27 +393,7 @@ const managerConfigStr = JSON.stringify({
     }
 
     // ── Public API ───────────────────────────────────────────
-    function loadExternalPlaylist(playlist) {
-        if (!playlist || playlist.length === 0) return;
-        _externalLoaded = true;
-        state.playlist = playlist;
-        state.currentIndex = 0;
-        if (!state.initialized) {
-            audio.volume = state.volume;
-            state.initialized = true;
-        }
-        emit('fm:init', {
-            playlist: state.playlist,
-            playMode: state.playMode,
-            volume: state.volume,
-            isMuted: state.isMuted
-        });
-        loadTrack(0, false);
-    }
-
     window.__fireflyMusic = {
-        get _externalLoaded() { return _externalLoaded; },
-        set _externalLoaded(v) { _externalLoaded = v; },
         init: init,
         getState: function () {
             var track = state.playlist[state.currentIndex] || null;
@@ -518,13 +411,12 @@ const managerConfigStr = JSON.stringify({
                 currentTimeStr: formatTime(audio.currentTime),
                 durationStr: formatTime(audio.duration),
                 lyrics: state.lyrics,
+                lyricsStatus: state.lyricsStatus,
                 currentLrcIndex: state.currentLrcIndex,
                 initialized: state.initialized,
-                error: state.error,
-                config: config
+                error: state.error
             };
         },
-        loadExternalPlaylist: loadExternalPlaylist,
         togglePlay: togglePlay,
         playNext: function () { playNext(false); },
         playPrev: playPrev,
@@ -534,7 +426,30 @@ const managerConfigStr = JSON.stringify({
         seek: seek,
         seekToTime: seekToTime,
         playTrackByIndex: playTrackByIndex,
-        loadTrack: loadTrack
+        loadTrack: loadTrack,
+        // Re-sync all MusicPlayer widgets (called after Swup page transitions)
+        resync: function () {
+            if (!state.initialized) return;
+            var widgets = document.querySelectorAll('.music-player-widget');
+            widgets.forEach(function (w) {
+                if (typeof w.__musicSync === 'function') {
+                    try { w.__musicSync(); } catch (e) { /* noop */ }
+                }
+            });
+        }
     };
+
+    // ── Swup page transition hook: re-sync widgets after navigation ──
+    // Per CLAUDE.md 4.4, only listen to `astro:page-load` (bridged by
+    // @swup/astro). It fires once per navigation incl. first load — do NOT
+    // also subscribe to `swup:contentReplaced` / `page:view` /
+    // `content:replace`, which would trigger this 4× per navigation.
+    function scheduleResync() {
+        setTimeout(function () {
+            if (window.__fireflyMusic) window.__fireflyMusic.resync();
+        }, 100);
+    }
+
+    document.addEventListener('astro:page-load', scheduleResync);
 })();
 </script>

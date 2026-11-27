@@ -1,0 +1,59 @@
+name: 申请友链
+description: 申请与 夢酷 の Blog 交换友情链接
+title: "[友链申请] "
+labels: ["friend-link"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        ## 🤝 友链申请
+        请先在你的网站添加本站友链，再填写以下信息提交。提交后机器人将自动验证并添加：
+        - **站点名称**：夢酷
+        - **站点链接**：`https://imki.cn`
+        - **头像链接**：`https://imki.cn/avatar.jpg`
+        - **站点描述**：`Crafting Dreams In Code.`
+  - type: input
+    id: name
+    attributes:
+      label: 网站名称
+      placeholder: 例如：夢酷 の Blog
+    validations:
+      required: true
+  - type: input
+    id: url
+    attributes:
+      label: 网站链接
+      placeholder: https://example.com
+    validations:
+      required: true
+  - type: input
+    id: avatar
+    attributes:
+      label: 头像链接
+      placeholder: https://example.com/avatar.jpg
+    validations:
+      required: true
+  - type: input
+    id: description
+    attributes:
+      label: 网站描述
+      placeholder: 一句话介绍你的博客
+    validations:
+      required: true
+  - type: input
+    id: friend_page
+    attributes:
+      label: 友链页面 URL
+      description: 放置了本站（imki.cn）友链的页面链接，机器人将自动访问验证
+      placeholder: https://example.com/friends
+    validations:
+      required: true
+  - type: input
+    id: tags
+    attributes:
+      label: 站点标签
+      description: 可选，多个标签可用逗号分隔，默认为 Blog
+      placeholder: Blog
+    validations:
+      required: false
+

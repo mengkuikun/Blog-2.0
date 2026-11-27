@@ -249,6 +249,12 @@ import { url } from "@/utils/url-utils";
 
     console.log("🎯 Initializing Spine Model...");
 
+    // 确保容器处于显示状态
+    const modelContainer = document.getElementById("spine-model-container");
+    if (modelContainer) {
+      modelContainer.style.display = "block";
+    }
+
     // 先清理可能存在的旧实例
     cleanupSpineModel();
 
@@ -737,6 +743,12 @@ import { url } from "@/utils/url-utils";
   window.addEventListener("guestbook:status", (event) => {
     if (!spineModelConfig.guestbookAssistant) return;
     if (!isGuestbookPage()) return;
+
+    // 自愈守卫：确保进入留言板时看板娘容器可见并已启动
+    const container = document.getElementById("spine-model-container");
+    if (!container || container.style.display === "none" || !window.spineModelInitialized) {
+      handleNavigation();
+    }
     const detail = (event && "detail" in event ? event.detail : null) || {};
 
     if (detail.lastSyncedAt) {
@@ -798,10 +810,25 @@ import { url } from "@/utils/url-utils";
   if (!window.__spineGlobalEventsBound) {
     window.__spineGlobalEventsBound = true;
 
-    // 监听 Swup 页面切换事件
-    document.addEventListener("swup:content:replaced", () => {
+    const onNavigate = () => {
       setTimeout(handleNavigation, 80);
-    });
+    };
+
+    // 监听 Swup 页面切换事件（同时兼容 window 与 document 事件派发）
+    window.addEventListener("swup:content:replaced", onNavigate);
+    document.addEventListener("swup:content:replaced", onNavigate);
+    document.addEventListener("astro:page-load", onNavigate);
+
+    // 监听 Swup hooks（如果已激活）
+    if (typeof window.swup !== "undefined" && window.swup.hooks) {
+      window.swup.hooks.on("content:replace", onNavigate);
+    } else {
+      document.addEventListener("swup:enable", () => {
+        if (window.swup && window.swup.hooks) {
+          window.swup.hooks.on("content:replace", onNavigate);
+        }
+      });
+    }
 
     // 监听 popstate 事件（浏览器前进后退）
     window.addEventListener("popstate", () => {

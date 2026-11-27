@@ -1,0 +1,48 @@
+name: 🤝 友链申请自动审批
+
+on:
+  issues:
+    types: [opened, reopened]
+  issue_comment:
+    types: [created]
+
+jobs:
+  process:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      issues: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          ref: main
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9.14.4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: 安装脚本依赖
+        working-directory: .github/scripts
+        run: pnpm install --no-frozen-lockfile
+
+      - name: 安装 Playwright Chromium
+        working-directory: .github/scripts
+        run: pnpm exec playwright install chromium --with-deps
+
+      - name: 执行自动审批脚本
+        uses: actions/github-script@v7
+        env:
+          # 演习模式开关："true" 时仅演习检测并预览结果，不写入仓库；测通后改为 "false" 正式上线
+          DRY_RUN: "true"
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const path = require("node:path");
+            const handler = require(path.join(process.env.GITHUB_WORKSPACE, ".github/scripts/process-friend-request.cjs"));
+            await handler({ github, context, core });
+
