@@ -28,15 +28,17 @@ const items = friendsEntries
 	.sort((a, b) => (b.data.weight || 0) - (a.data.weight || 0));
 
 // 新朋友：按添加日期（added）降序取最近 3 个。
+// 必须具有显式 added 日期才参与排序，未设置 added 字段的旧友链或站长站点不参与"新朋友"展示（直接进入对应普通分组）
 // 禁止用文件 mtime 兜底：CI 全新 clone 时所有文件 mtime 都等于构建时刻，
 // 会让缺 added 的旧友链永远霸占"新朋友"区块（2026-09 线上事故根因）
+const itemsWithAdded = items.filter((item) => Boolean(item.data.added));
 const missingAdded = items.filter((item) => !item.data.added);
 if (missingAdded.length > 0) {
 	console.warn(
 		`[friends] ${missingAdded.length} 个友链缺少 added 字段，不参与"新朋友"排序：${missingAdded.map((item) => item.id).join("、")}`,
 	);
 }
-const latestItems = [...items]
+const latestItems = itemsWithAdded
 	.sort(
 		(a, b) => (b.data.added?.getTime() ?? 0) - (a.data.added?.getTime() ?? 0),
 	)
